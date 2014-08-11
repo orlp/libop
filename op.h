@@ -3,5 +3,7 @@
 
 #include "bits/isqrt.h"
 #include "bits/rng.h"
+#include "bits/ilog.h"
+#include "bits/image.h"
 
 #endif
