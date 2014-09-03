@@ -154,45 +154,43 @@
 #include <algorithm>
 
 namespace op {
-    namespace endian {
-        // TODO: optimized implementations for small sizes
-        template<class T>
-        T byteswap(T x) {
-            std::reverse(reinterpret_cast<unsigned char*>(&x), reinterpret_cast<unsigned char*>(&x) + sizeof(x));
+    // TODO: optimized implementations for small sizes
+    template<class T>
+    T byteswap(T x) {
+        std::reverse(reinterpret_cast<unsigned char*>(&x), reinterpret_cast<unsigned char*>(&x) + sizeof(x));
+        return x;
+    }
+
+    template<class T>
+    T htole(T x) {
+        #if defined(OP_ENDIAN_LITTLE)
             return x;
-        }
+        #elif defined(OP_ENDIAN_BIG)
+            return byteswap(x);
+        #else
+            #error PDP endian not supported.
+        #endif
+    }
 
-        template<class T>
-        T htole(T x) {
-            #if defined(OP_ENDIAN_LITTLE)
-                return x;
-            #elif defined(OP_ENDIAN_BIG)
-                return byteswap(x);
-            #else
-                #error PDP endian not supported.
-            #endif
-        }
+    template<class T>
+    T htobe(T x) {
+        #if defined(OP_ENDIAN_LITTLE)
+            return byteswap(x);
+        #elif defined(OP_ENDIAN_BIG)
+            return x;
+        #else
+            #error PDP endian not supported.
+        #endif
+    }
 
-        template<class T>
-        T htobe(T x) {
-            #if defined(OP_ENDIAN_LITTLE)
-                return byteswap(x);
-            #elif defined(OP_ENDIAN_BIG)
-                return x;
-            #else
-                #error PDP endian not supported.
-            #endif
-        }
+    template<class T>
+    T letoh(T x) {
+        return htole(x);
+    }
 
-        template<class T>
-        T letoh(T x) {
-            return htole(x);
-        }
-
-        template<class T>
-        T betoh(T x) {
-            return htobe(x);
-        }
+    template<class T>
+    T betoh(T x) {
+        return htobe(x);
     }
 }
 

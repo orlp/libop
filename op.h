@@ -2,7 +2,7 @@
 #define OP_OP_H
 
 #include "bits/isqrt.h"
-#include "bits/rng.h"
+#include "bits/random.h"
 #include "bits/ilog.h"
 #include "bits/image.h"
 

@@ -1,7 +1,6 @@
 #ifndef OP_IMAGE_H
 #define OP_IMAGE_H
 
-#include <iostream>
 #include <cstdint>
 #include <array>
 
@@ -18,8 +17,8 @@ namespace op {
             image_data.resize(width_ * height_ * 4);
         }
 
-        void set_pixel(int x, int y, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha = 255) {
-            unsigned char *p = &image_data[4 * (width_ * y + x)];
+        void set_pixel(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255) {
+            uint8_t *p = &image_data[4 * (width_ * y + x)];
             
             *p++ = red;
             *p++ = green;
@@ -30,11 +29,11 @@ namespace op {
         template<class OutIter>
         void write_png(OutIter& iter) {
             // PNG magic bytes
-            const std::array<unsigned char, 8> PNG_HEADER = { 137, 80, 78, 71, 13, 10, 26, 10 };
+            const std::array<uint8_t, 8> PNG_HEADER = { 137, 80, 78, 71, 13, 10, 26, 10 };
             iter.write(reinterpret_cast<const char*>(PNG_HEADER.data()), PNG_HEADER.size());
 
             // IHDR chunk
-            std::array<unsigned char, 4 + 4 + 13 + 4> ihdr_chunk;
+            std::array<uint8_t, 4 + 4 + 13 + 4> ihdr_chunk;
             store_be32(ihdr_chunk.data(), 13);                          // IHDR payload length
             
             const std::string IHDR = "IHDR";
@@ -54,13 +53,13 @@ namespace op {
             iter.write(reinterpret_cast<const char*>(ihdr_chunk.data()), ihdr_chunk.size());
 
             // IDAT chunk
-            std::vector<unsigned char> idat_chunk(4); // reserve 4 bytes for the chunk size
+            std::vector<uint8_t> idat_chunk(4); // reserve 4 bytes for the chunk size
 
             const std::string IDAT = "IDAT";
             std::copy(IDAT.begin(), IDAT.end(), std::back_inserter(idat_chunk)); // IDAT identifier
 
             // every scanline must have a filter header byte
-            std::vector<unsigned char> scanlines;
+            std::vector<uint8_t> scanlines;
             scanlines.reserve(4 * width_ * height_ + height_);
 
             for (int y = 0; y < height_; ++y) {
@@ -105,23 +104,26 @@ namespace op {
             iter.write(reinterpret_cast<const char*>(idat_chunk.data()), idat_chunk.size());
 
             // IEND chunk
-            const std::array<unsigned char, 12> IEND_CHUNK = {0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130};
+            const std::array<uint8_t, 12> IEND_CHUNK = {0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130};
             iter.write(reinterpret_cast<const char*>(IEND_CHUNK.data()), IEND_CHUNK.size());
         }
+
+        const int width() const { return width_; }
+        const int height() const { return height_; }
 
     private:
         int width_;
         int height_;
 
-        std::vector<unsigned char> image_data;
+        std::vector<uint8_t> image_data;
 
-        void store_be32(unsigned char* p, uint32_t x) {
-            x = op::endian::htobe(x);
-            std::memcpy(p, reinterpret_cast<unsigned char*>(&x), sizeof(x));
+        void store_be32(uint8_t* p, uint32_t x) {
+            x = op::htobe(x);
+            std::memcpy(p, reinterpret_cast<uint8_t*>(&x), sizeof(x));
         }
 
         // CRC implementation from PNG spec
-        uint32_t crc(unsigned char *buf, int len) {
+        uint32_t crc(uint8_t* buf, int len) {
             static std::array<uint32_t, 256> crc_table;
             static bool crc_table_computed = false;
 
@@ -150,7 +152,7 @@ namespace op {
         }
 
         // adler32 checksum for deflate
-        uint32_t adler32(unsigned char *data, int32_t len) {
+        uint32_t adler32(uint8_t* data, int len) {
             const int MOD_ADLER = 65521;
             uint32_t a = 1, b = 0;
          
