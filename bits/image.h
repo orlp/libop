@@ -1,8 +1,13 @@
 #ifndef OP_IMAGE_H
 #define OP_IMAGE_H
 
-#include <cstdint>
+#include <algorithm>
 #include <array>
+#include <cstdint>
+#include <cstring>
+#include <iterator>
+#include <string>
+#include <vector>
 
 #include "endian.h"
 

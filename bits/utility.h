@@ -1,9 +1,9 @@
 #ifndef OP_UTILITY_H
 #define OP_UTILITY_H
 
+#include <array>
 #include <type_traits>
 #include <utility>
-#include <array>
 
 namespace op {
     template<class... T>

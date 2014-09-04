@@ -10,9 +10,9 @@ namespace op {
         /* for small values using native functions is fastest */
         /* where "small" means maximum integer accurate after float conversion */
         if (x <= 16785406ull) {
-            return uint32_t(sqrtf(float(x)));
+            return uint32_t(std::sqrtf(float(x)));
         } if (x <= 4503599761588223ull) {
-            return uint32_t(sqrt(double(x)));
+            return uint32_t(std::sqrt(double(x)));
         }
 
         /* Newton's method, adapted from Hacker's Delight */

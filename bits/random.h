@@ -1,14 +1,23 @@
 #ifndef OP_RANDOM_H
 #define OP_RANDOM_H
 
-#include "endian.h"
+#include <algorithm>
+#include <cstdint>
+#include <ios>
+#include <iterator>
+#include <limits>
+#include <random>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 #include "exception.h"
 
 #ifdef _WIN32
     #include <windows.h>
     #include <wincrypt.h>
 #else
-    #include <fstream>
+    #include <ifstream>
 #endif
 
 namespace op {
@@ -85,7 +94,7 @@ namespace op {
     namespace detail {
         template<class Iter, class URNG>
         inline Iter random_choice(Iter first, Iter last, URNG&& g, std::random_access_iterator_tag) {
-            return first + op::randint(0, last - first - 1, g);
+            return first + op::randint<typename std::iterator_traits<Iter>::difference_type>(0, last - first - 1, g);
         }
 
 
@@ -151,7 +160,7 @@ namespace op {
     }
 
 
-    template<class T = double, class URNG>
+    template<class T, class URNG>
     inline T rand(URNG&& g) {
         return std::generate_canonical<T, std::numeric_limits<T>::digits>(g);
     }
@@ -181,7 +190,7 @@ namespace op {
         #else
             std::ifstream device(token.c_str(), std::ios::in | std::ios::binary);
 
-            if (!device.read(reinterpret_cast<unsigned char*>(&result), sizeof(result))) {
+            if (!device.read(reinterpret_cast<char*>(&result), sizeof(result))) {
                 throw op::RandomDeviceError("reading from the operating systems random device failed");
             }
         #endif

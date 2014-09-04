@@ -2,8 +2,8 @@
 #define OP_EXCEPTION_H
 
 #include <stdexcept>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace op {
     class BaseException : public virtual std::exception {

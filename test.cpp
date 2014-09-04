@@ -17,11 +17,11 @@ int main(int argc, char **argv) {
     std::array<char, 5> a { 'a', 'b', 'c', 'd', 'e' };
 
     for (int i = 0; i < 500; ++i)
-    std::cout << *random_choice(a.begin(), a.end(), rng);
+    std::cout << *op::random_choice(a.begin(), a.end(), rng);
 
     unsigned char out[4] = {0};
     for (int i = 0; i < 5; ++i) {
-        random_sample(a.begin(), a.end(), out, 3, rng);
+        op::random_sample(a.begin(), a.end(), out, 3, rng);
         std::cout << out << "\n";
     }
 
