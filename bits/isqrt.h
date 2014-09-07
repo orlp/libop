@@ -6,11 +6,11 @@
 
 namespace op {
     /* returns the integer part of the square root of x */
-    uint32_t isqrt(uint64_t x) {
+    inline uint32_t isqrt(uint64_t x) {
         /* for small values using native functions is fastest */
         /* where "small" means maximum integer accurate after float conversion */
         if (x <= 16785406ull) {
-            return uint32_t(std::sqrtf(float(x)));
+            return uint32_t(std::sqrt(float(x)));
         } if (x <= 4503599761588223ull) {
             return uint32_t(std::sqrt(double(x)));
         }

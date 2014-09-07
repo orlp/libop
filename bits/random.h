@@ -21,8 +21,6 @@
 #endif
 
 namespace op {
-    // the helper functions below are cryptographically secure, if the RNG is
-
     // returns an iterator pointing to a random element from the given sequence
     template<class Iter, class URNG>
     Iter random_choice(Iter first, Iter last, URNG&& g);
@@ -62,7 +60,7 @@ namespace op {
 
     class random_device {
     public:
-        typedef uint64_t result_type;
+        typedef uint32_t result_type;
 
         explicit random_device(const std::string& token =
             #ifdef _WIN32
@@ -84,7 +82,6 @@ namespace op {
     private:
         std::string token;
     };
-
 }
 
 

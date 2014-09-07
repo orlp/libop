@@ -156,13 +156,13 @@
 namespace op {
     // TODO: optimized implementations for small sizes
     template<class T>
-    T byteswap(T x) {
+    inline T byteswap(T x) {
         std::reverse(reinterpret_cast<unsigned char*>(&x), reinterpret_cast<unsigned char*>(&x) + sizeof(x));
         return x;
     }
 
     template<class T>
-    T htole(T x) {
+    inline T htole(T x) {
         #if defined(OP_ENDIAN_LITTLE)
             return x;
         #elif defined(OP_ENDIAN_BIG)
@@ -173,7 +173,7 @@ namespace op {
     }
 
     template<class T>
-    T htobe(T x) {
+    inline T htobe(T x) {
         #if defined(OP_ENDIAN_LITTLE)
             return byteswap(x);
         #elif defined(OP_ENDIAN_BIG)
@@ -184,12 +184,12 @@ namespace op {
     }
 
     template<class T>
-    T letoh(T x) {
+    inline T letoh(T x) {
         return htole(x);
     }
 
     template<class T>
-    T betoh(T x) {
+    inline T betoh(T x) {
         return htobe(x);
     }
 }

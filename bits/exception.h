@@ -6,6 +6,7 @@
 #include <string>
 
 namespace op {
+    // a base exception that stores a message and plays nicely with virtual inheritance
     class BaseException : public virtual std::exception {
     public:
         explicit BaseException(const std::string& msg) : msg_storage(std::make_shared<std::string>(msg)) { }

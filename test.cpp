@@ -5,7 +5,8 @@
 
 int main(int argc, char **argv) {
     std::seed_seq sseq{1, 3};
-    std::mt19937_64 rng;
+    op::random_device rd;
+    std::mt19937_64 rng(rd());
 
     std::cout << op::randint(0, 2, rng) << "\n";
     std::cout << op::randint(0, 2, rng) << "\n";
