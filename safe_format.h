@@ -161,8 +161,8 @@ namespace safe_format {
         }
     }
 
-    // the format function, splits the format string up for each individual argument and then dispatches them to
-    // individual formatters with the correct options 
+    // The format function, splits the format string up for each individual argument and then
+    // dispatches them to individual formatters with the correct options.
     template<class... Args>
     std::string format(const std::string& fmt, Args... args) {
         std::string result;

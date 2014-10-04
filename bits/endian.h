@@ -29,6 +29,32 @@
 #ifndef OP_ENDIAN_H
 #define OP_ENDIAN_H
 
+#include <algorithm>
+
+
+namespace op {
+    // Reverses the order of bytes in the representation of x.
+    template<class T>
+    T byteswap(T x);
+
+    // If x is in host byte order, turn it into little endian.
+    template<class T>
+    T htole(T x);
+
+    // If x is in host byte order, turn it into big endian.
+    template<class T>
+    T htobe(T x);
+
+    // If x is in little endian, turn it into host byte order.
+    template<class T>
+    T letoh(T x);
+    
+    // If x is in big endian, turn it into host byte order.
+    template<class T>
+    T betoh(T x);
+}
+
+
 /* GNU libc provides a header defining __BYTE_ORDER, or _BYTE_ORDER.
    And some OS's provide some for of endian header also. */
 #if defined(__GLIBC__) || defined(__GNU_LIBRARY__)
@@ -151,15 +177,16 @@
     #error Could not detect endianness.
 #endif
 
-#include <algorithm>
 
 namespace op {
-    // TODO: optimized implementations for small sizes
+    // TODO: Optimized implementations for small sizes.
     template<class T>
     inline T byteswap(T x) {
-        std::reverse(reinterpret_cast<unsigned char*>(&x), reinterpret_cast<unsigned char*>(&x) + sizeof(x));
+        std::reverse(reinterpret_cast<unsigned char*>(&x),
+                     reinterpret_cast<unsigned char*>(&x) + sizeof(x));
         return x;
     }
+
 
     template<class T>
     inline T htole(T x) {
@@ -172,6 +199,7 @@ namespace op {
         #endif
     }
 
+
     template<class T>
     inline T htobe(T x) {
         #if defined(OP_ENDIAN_LITTLE)
@@ -183,10 +211,12 @@ namespace op {
         #endif
     }
 
+
     template<class T>
     inline T letoh(T x) {
         return htole(x);
     }
+
 
     template<class T>
     inline T betoh(T x) {

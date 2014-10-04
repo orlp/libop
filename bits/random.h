@@ -10,54 +10,54 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
 #include "exception.h"
 
 #ifdef _WIN32
     #include <windows.h>
     #include <wincrypt.h>
 #else
-    #include <ifstream>
+    #include <fstream>
 #endif
 
+
 namespace op {
-    // returns an iterator pointing to a random element from the given sequence
+    // Returns an iterator pointing to a random element from the given sequence.
     template<class Iter, class URNG>
     Iter random_choice(Iter first, Iter last, URNG&& g);
 
-    // selects k samples without replacement from the given sequence
-    // the order of the samples in the output is undefined, but not necessarily random
+    // Selects k samples without replacement from the given sequence. The order of the samples in
+    // the output is undefined, but not necessarily random.
     template<class InIter, class OutIter, class URNG>
     void random_sample(InIter first, InIter last, OutIter out, int k, URNG&& g);
 
-    // fill buf with buflen random bytes
-    // slower on big-endian machines for consistency
+    // Fill buf with buflen random bytes. Slower on big-endian machines for consistency.
     template<class URNG>
     void random_bytes(unsigned char* buf, int buflen, URNG&& g);
 
-    // randint<T>(g) returns a random integer of type T, with a uniform bit pattern
+    // randint<T>(g) returns a random integer of type T, with a uniform bit pattern.
     template<class T, class URNG>
     T randint(URNG&& g);
 
-    // randint(min, max, g) returns a random integer N with min <= N <= max
+    // randint(min, max, g) returns a random integer N with min <= N <= max.
     template<class T, class URNG>
     T randint(T min, T max, URNG&& g);
 
-    // rand(g) returns a random floating point number in the range [0.0, 1.0)
+    // rand(g) returns a random floating point number in the range [0.0, 1.0).
     template<class T = double, class URNG>
     T rand(URNG&& g);
 
-    // rand(min, max, g) returns a random floating point number N such that min <= N <= max
+    // rand(min, max, g) returns a random floating point number N such that min <= N <= max.
     template<class T, class URNG>
     T rand(T min, T max, URNG&& g);
 
-    // C++11 <random> compatible random_device, because many implementations are broken
-    // implementation is cryptographically secure, or fails with a RandomDeviceError
+    // Exception used by op::random_device.
     struct RandomDeviceError : public virtual op::BaseException {
         explicit RandomDeviceError(const std::string& msg) : op::BaseException(msg) { }
         explicit RandomDeviceError(const char* msg) : op::BaseException(msg) { }
     };
 
+    // C++11 <random> compatible random_device, because many implementations are broken.
+    // Implementation is cryptographically secure, or fails with a RandomDeviceError.
     class random_device {
     public:
         typedef uint32_t result_type;
@@ -86,7 +86,7 @@ namespace op {
 
 
 
-// implementation
+// Implementation.
 namespace op {
     namespace detail {
         template<class Iter, class URNG>
