@@ -1,7 +1,7 @@
 #ifndef OP_EXCEPTION_H
 #define OP_EXCEPTION_H
 
-#include <stdexcept>
+#include <exception>
 #include <memory>
 #include <string>
 

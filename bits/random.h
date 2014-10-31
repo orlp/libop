@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <ios>
 #include <iterator>
 #include <limits>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
 #include "exception.h"
 
 #ifdef _WIN32
@@ -25,8 +27,8 @@ namespace op {
     template<class Iter, class URNG>
     Iter random_choice(Iter first, Iter last, URNG&& g);
 
-    // Selects k samples without replacement from the given sequence. The order of the samples in
-    // the output is undefined, but not necessarily random.
+    // Selects k random samples without replacement from the given sequence. The order of the
+    // samples in the output is undefined, but not necessarily random.
     template<class InIter, class OutIter, class URNG>
     void random_sample(InIter first, InIter last, OutIter out, int k, URNG&& g);
 

@@ -1,6 +1,13 @@
 #ifndef OP_STRING_H
 #define OP_STRING_H
 
+#include <cctype>
+#include <cstddef>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+
 
 namespace op {
     // Returns a string that is equal to every element in the sequence begin, end joined by sep.
@@ -32,6 +39,12 @@ namespace op {
     // Removes characters from the both sides of str as long as they're found in chars.
     // Example: strip("xxIx", "x") -> "I".
     std::string strip(const std::string& str, const std::string& chars = " \f\n\r\t\v");
+    
+    // Does str start with start?
+    bool startswith(const std::string& str, const std::string& start);
+
+    // Does str end with end?
+    bool endswith(const std::string& str, const std::string& end);
 }
 
 
@@ -105,6 +118,16 @@ namespace op {
 
         if (lpos == std::string::npos) return "";
         return str.substr(lpos, str.find_last_not_of(chars) - lpos + 1);
+    }
+    
+
+    inline bool startswith(const std::string& str, const std::string& start) {
+        return str.compare(0, start.length(), start) == 0;
+    }
+
+
+    inline bool endswith(const std::string& str, const std::string& end) {
+        return end.length() <= str.length() && str.compare(str.length() - end.length(), end.length(), end) == 0;
     }
 }
 

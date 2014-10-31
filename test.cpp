@@ -9,6 +9,7 @@ struct B : A {};
 
 void f(A) {}
 
+
 int main(int argc, char **argv) {
     std::seed_seq sseq{1, 3};
     op::random_device rd;
@@ -25,10 +26,10 @@ int main(int argc, char **argv) {
     auto a = op::to_array("abcde");
     std::cout << "array:\n";
 
-    for (auto al : a) {
-        std::cout << al << " ";
-    }
+    for (auto al : a) { std::cout << al << " "; }
     std::cout << "\n";
+
+
 
     for (int i = 0; i < 500; ++i)
     std::cout << *op::random_choice(a.begin(), a.end(), rng);
@@ -39,7 +40,7 @@ int main(int argc, char **argv) {
         std::cout << out << "\n";
     }
 
-    op::Image img(1500, 1500);
+    op::Image img(15, 15);
     
     for (int x = 0; x < img.width()/2; ++x) {
         for (int y = 0; y < img.height(); ++y) {
@@ -58,6 +59,55 @@ int main(int argc, char **argv) {
 
     std::ofstream file("test.png", std::ios::binary);
     img.write_png(file);
+
+    op::print(op::startswith("test", "te"), op::startswith("hello", "te"));
+    op::print(op::endswith("test", "st"), op::endswith("hello", "he"));
+    op::print(op::endswith("", ""), op::endswith("", ""));
+    op::print(op::endswith("hah", ""), op::endswith("hah", ""));
+    op::print(op::startswith("", ""), op::startswith("", ""));
+    op::print(op::startswith("hah", ""), op::startswith("hah", ""));
+
+    for (auto i : op::range(-1, 8ull)) {
+        op::print(i);
+    }
+    
+    std::vector<int> vx { 2, 3, 4, 5, 6};
+    for (auto i : op::range(1, vx.size())) {
+        op::print(i);
+    }
+
+    op::print(op::safe_less(-2, 2u));
+
+    op::print();
+    op::print();
+
+
+    struct NonPrintable { };
+    auto x = std::make_tuple(2, "test", 3, 8.4, NonPrintable());
+
+    auto d = op::tuple_visit(x, 3, op::visit_copy<double>());
+    std::cout << d << "\n";
+
+    std::cout << op::tuple_visit(x, 2, op::visit_copy<int>()) << "\n";         // 3
+    std::cout << op::tuple_visit(x, 1, op::visit_copy<std::string>()) << "\n"; // test
+
+    // can't implicitly convert from int to string
+    try { std::cout << op::tuple_visit(x, 0, op::visit_copy<std::string>()) << "\n"; }
+    catch (const std::exception& e) { std::cout << e.what() << "\n"; }
+
+    // out of bounds
+    try { op::tuple_visit(x, 5, op::visit_copy<int>()); }
+    catch (const std::exception& e) { std::cout << e.what() << "\n"; }
+
+    op::fformat(std::cout, "{0:.*1}\n", 5.1243, 3);
+
+    op::fformat(std::cout, "The answer is {:.*f} {}.\n", 34.2348, 2, "USD");
+    
+    op::fformat(std::cout, "{:'*<10}\n", 34.2348);
+    op::fformat(std::cout, "{:'*10}\n", 34.2348);
+    op::fformat(std::cout, "{:'*<10}\n", "test");
+    op::fformat(std::cout, "{:'*10}\n", "test");
+
 
     return 0;
 }

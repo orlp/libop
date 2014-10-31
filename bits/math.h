@@ -18,6 +18,22 @@ namespace op {
 
     // Returns the integer part of the square root of x.
     uint32_t isqrt(uint64_t x);
+
+    // Returns x < y, doing it correctly even if the signedness differs between T and U.
+    template<class T, class U>
+    constexpr bool safe_less(T x, U y);
+
+    // Returns x > y, doing it correctly even if the signedness differs between T and U.
+    template<class T, class U>
+    constexpr bool safe_greater(T x, U y);
+
+    // Returns x <= y, doing it correctly even if the signedness differs between T and U.
+    template<class T, class U>
+    constexpr bool safe_less_equal(T x, U y);
+
+    // Returns x >= y, doing it correctly even if the signedness differs between T and U.
+    template<class T, class U>
+    constexpr bool safe_greater_equal(T x, U y);
 }
 
 
@@ -127,6 +143,45 @@ namespace op {
 
         return g0;
     }
+
+
+    namespace detail {
+        template<class T, class U, bool=std::is_signed<T>::value, bool=std::is_signed<U>::value>
+        struct safe_less_helper;
+
+        template<class T, class U, bool same_sign>
+        struct safe_less_helper<T, U, same_sign, same_sign> {
+            static constexpr bool eval(T x, U y) { return x < y; }
+        };
+
+        template<class T, class U>
+        struct safe_less_helper<T, U, true, false> {
+            static constexpr bool eval(T x, U y) {
+                return x < 0 || static_cast<typename std::make_unsigned<T>::type>(x) < y;
+            }
+        };
+
+        template<class T, class U>
+        struct safe_less_helper<T, U, false, true> {
+            static constexpr bool eval(T x, U y) {
+                return y > 0 && x < static_cast<typename std::make_unsigned<U>::type>(y);
+            }
+        };
+    }
+
+    template<class T, class U>
+    inline constexpr bool safe_less(T x, U y) {
+        return detail::safe_less_helper<T, U>::eval(x, y);
+    }
+
+    template<class T, class U>
+    inline constexpr bool safe_greater(T x, U y) { return safe_less(y, x); }
+
+    template<class T, class U>
+    inline constexpr bool safe_less_equal(T x, U y) { return !safe_less(y, x); }
+
+    template<class T, class U>
+    inline constexpr bool safe_greater_equal(T x, U y) { return !safe_less(x, y); }
 }
 
 #endif

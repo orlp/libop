@@ -4,8 +4,10 @@
 #include "bits/endian.h"
 #include "bits/exception.h"
 #include "bits/image.h"
+#include "bits/io.h"
 #include "bits/math.h"
 #include "bits/random.h"
 #include "bits/string.h"
+#include "bits/utility.h"
 
 #endif
