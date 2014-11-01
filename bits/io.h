@@ -311,7 +311,7 @@ namespace op {
                     else if (Trait::eq(*str, out.widen('p'))) fmt_params.setf(out.showpoint);
                     else if (Trait::eq(*str, out.widen('+'))) fmt_params.setf(out.showpos);
                     else if (Trait::eq(*str, out.widen('u'))) fmt_params.setf(out.uppercase);
-                    else break; // unknown flag
+                    else break; // Unknown flag.
                     ++str;
                 }
             }
@@ -333,16 +333,16 @@ namespace op {
 
 
     template<class Char, class Trait, class Alloc, class ...Args>
-    inline std::basic_string<Char, Trait, Alloc> format(const Char* str, const Args&... arguments) {
+    inline std::basic_string<Char, Trait, Alloc> format(const Char* str, const Args&... args) {
         std::basic_ostringstream<Char, Trait, Alloc> stream;
-        op::fformat(stream, str, arguments...);
+        op::fformat(stream, str, args...);
         return stream.str();
     }
 
 
     template<class ...Args>
-    inline void fprint(const char* str, const Args&... arguments) {
-        op::fformat(std::cout, str, arguments...);
+    inline void fprint(const char* str, const Args&... args) {
+        op::fformat(std::cout, str, args...);
     }
 }
 
