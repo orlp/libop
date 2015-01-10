@@ -17,6 +17,17 @@ int main(int argc, char **argv) {
 
     f(B());
 
+    op::print(op::isqrt(10));
+    op::print(op::lcm(-24, 60));
+
+    std::vector<int> primes;
+    op::primesbelow(102, std::back_inserter(primes));
+    for (int i : op::range(100)) {
+        op::print(i, op::isprime(i));
+    }
+
+    op::print(op::join(primes.begin(), primes.end()));
+
     std::cout << op::randint(0, 2, rng) << "\n";
     std::cout << op::randint(0, 2, rng) << "\n";
 
@@ -39,6 +50,8 @@ int main(int argc, char **argv) {
         op::random_sample(a.begin(), a.end(), out, 3, rng);
         std::cout << out << "\n";
     }
+
+
 
     op::Image img(15, 15);
     
@@ -107,6 +120,16 @@ int main(int argc, char **argv) {
     op::fformat(std::cout, "{:'*10}\n", 34.2348);
     op::fformat(std::cout, "{:'*<10}\n", "test");
     op::fformat(std::cout, "{:'*10}\n", "test");
+
+    for (int i : op::range(10000)) {
+        uint64_t n = op::randint<uint64_t>(0, -1, rng);
+        auto factors = op::primefactors(n);
+        std::string p = op::join(factors.begin(), factors.end());
+        op::fprint("{}: {}\n", n, p);
+    }
+
+    auto f = op::primefactors(392853920582390413ull);
+    op::print(op::join(f.begin(), f.end()));
 
 
     return 0;

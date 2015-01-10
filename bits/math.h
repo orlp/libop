@@ -5,6 +5,10 @@
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#include <set>
+#include <iterator>
+
+#include "random.h"
 
 
 namespace op {
@@ -17,7 +21,8 @@ namespace op {
     constexpr int ilog(T x);
 
     // Returns the integer part of the square root of x.
-    uint32_t isqrt(uint64_t x);
+    template<class T>
+    inline uint32_t isqrt(T x);
 
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
@@ -116,6 +121,15 @@ namespace op {
     }
 
 
+    template<class T>
+    inline uint32_t isqrt(T x) {
+        static_assert(std::is_integral<T>::value, "op::isqrt only works on integer types");
+
+        if (x < 0) throw std::domain_error("op::isqrt");
+        return op::isqrt<uint64_t>(x);
+    }
+
+    template<>
     inline uint32_t isqrt(uint64_t x) {
         // For small values using native functions is fastest.
         // Where "small" means maximum integer accurate after float conversion.
@@ -144,6 +158,234 @@ namespace op {
         return g0;
     }
 
+    
+    template<class T, class U>
+    inline uint64_t gcd(T a_, U b_) {
+        static_assert(std::is_integral<T>::value && std::is_integral<U>::value,
+                      "op::gcd only works on integer types");
+
+        uint64_t a = a_ >= 0 ? a_ : -a_;
+        uint64_t b = b_ >= 0 ? b_ : -b_;
+        if (a == b) return a;
+        
+        while (b > 0) {
+            uint64_t tmp = a;
+            a = b;
+            b = tmp % b;
+        }
+
+        return a;
+    }
+
+
+    template<class T, class U>
+    inline uint64_t lcm(T a_, U b_) {
+        static_assert(std::is_integral<T>::value && std::is_integral<U>::value,
+                      "op::lcm only works on integer types");
+
+        uint64_t a = a_ >= 0 ? a_ : -a_;
+        uint64_t b = b_ >= 0 ? b_ : -b_;
+
+        return (a / gcd(a, b)) * b;
+    }
+
+
+    template<class OutIter>
+    inline void primesbelow(uint64_t limit, OutIter out) {
+        // http://stackoverflow.com/questions/4643647/fast-prime-factorization-module
+        if (limit > 2) *out++ = 2;
+        if (limit > 3) *out++ = 3;
+        if (limit <= 5) return;
+
+        uint64_t correction = limit % 6 > 1;
+        uint64_t wheels[6] = { limit, limit - 1, limit + 4, limit + 3, limit + 2, limit + 1 };
+        uint64_t n = wheels[limit % 6];
+
+        std::vector<bool> sieve(n / 3, true);
+        sieve[0] = false;
+
+        for (uint64_t i = 0, upper = op::isqrt(n)/3; i <= upper; ++i) {
+            if (sieve[i]) {
+                uint64_t k = (3*i + 1) | 1;
+                for (uint64_t j = (k*k) / 3;                   j < n/3; j += 2*k) sieve[j] = false;
+                for (uint64_t j = (k*k + 4*k - 2*k*(i & 1))/3; j < n/3; j += 2*k) sieve[j] = false;
+            }
+        }
+
+        for (uint64_t i = 1; i < n / 3 - correction; ++i) {
+            if (sieve[i]) *out++ = (3 * i + 1) | 1;
+        }
+    }
+
+
+    namespace detail {
+        // Computes (a + b) % m, assumes a < m, b < m.
+        uint64_t addmod64(uint64_t a, uint64_t b, uint64_t m) {
+            if (b >= m - a) return a - m + b;
+            return a + b;
+        }
+
+        // Computes (a*b) % m safely, considering overflow. Requires b < m;
+        uint64_t mulmod64(uint64_t a, uint64_t b, uint64_t m) {
+            // No overflow possible.
+            if (b <= std::numeric_limits<uint64_t>::max() / a) return (a*b) % m;
+
+            uint64_t res = 0;
+            while (a != 0) {
+                if (a & 1) res = addmod64(res, b, m);
+                a >>= 1;
+                b = addmod64(b, b, m);
+            }
+
+            return res;
+        }
+    }
+
+
+    uint64_t powmod(uint64_t b, uint64_t e, uint64_t m) {
+        uint64_t r = 1;
+
+        b %= m;
+        while (e) {
+            if (e % 2 == 1) r = detail::mulmod64(r, b, m);
+            e >>= 1;
+            b = detail::mulmod64(b, b, m);
+        }
+
+        return r;
+    }
+
+
+    template<class T>
+    inline bool isprime(T x) {
+        static_assert(std::is_integral<T>::value, "op::isprime only works on integer types");
+
+        if (x < 2) return false;
+        return op::isprime<uint64_t>(x);
+    }
+
+
+    template<>
+    inline bool isprime(uint64_t n) {
+        constexpr int max_smallprimeset = 100000;
+        static std::set<int> smallprimeset;
+
+        if (smallprimeset.size() == 0) {
+            op::primesbelow(max_smallprimeset, std::inserter(smallprimeset, smallprimeset.begin()));
+        }
+
+        if (n <= 3) return n >= 2;
+        if (n % 2 == 0) return false;
+        if (n < max_smallprimeset) return smallprimeset.count(n);
+
+        uint64_t d = n - 1;
+        int s = -1;
+        while (d % 2 == 0) {
+            d /= 2;
+            s += 1;
+        }
+
+        uint64_t bases[] = {2, 325, 9375, 28178, 450775, 9780504, 1795265022};
+        for (auto base : bases) {
+            uint64_t x = op::powmod(base, d, n);
+
+            if (x == 1 || x == n - 1) continue;
+            for (int i = 0; i < s; ++i) {
+                x = detail::mulmod64(x, x, n);
+
+                if (x == 1) return false;
+                if (x == n - 1) goto next_base;
+            }
+
+            return false;
+        next_base: ;
+        }
+
+        return true;
+    }
+    
+
+    namespace detail {
+        uint64_t pollard_brent(uint64_t n) {
+            static std::mt19937_64 rng((op::random_device()()));
+
+            uint64_t y = op::randint<uint64_t>(1, n-1, rng);
+            uint64_t c = op::randint<uint64_t>(1, n-1, rng);
+            uint64_t m = op::randint<uint64_t>(1, n-1, rng);
+
+            uint64_t g, r, q, x, ys;
+            g = r = q = 1;
+
+            while (g == 1) {
+                x = y;
+
+                for (uint64_t i = 0; i < r; ++i) {
+                    y = detail::addmod64(detail::mulmod64(y, y, n), c, n);
+                }
+
+                for (uint64_t k = 0; k < r && g == 1; k += m) {
+                    ys = y;
+
+                    for (uint64_t i = 0; i < std::min(m, r-k); ++i) {
+                        y = detail::addmod64(detail::mulmod64(y, y, n), c, n);
+                        q = detail::mulmod64(q, x < y ? y-x : x-y, n);
+                    }
+
+                    g = op::gcd(q, n);
+                }
+
+                r *= 2;
+            }
+
+            if (g == n) {
+                do {
+                    ys = detail::addmod64(detail::mulmod64(ys, ys, n), c, n);
+                    g = op::gcd(x < ys ? ys-x : x-ys, n);
+                } while (g == 1);
+            }
+
+            return g;
+        }
+    }
+
+
+    inline std::vector<uint64_t> primefactors(uint64_t n) {
+        static std::vector<int> smallprimes;
+        if (smallprimes.size() == 0) op::primesbelow(1000, std::back_inserter(smallprimes));
+
+        std::vector<uint64_t> factors;
+        for (uint64_t checker : smallprimes) {
+            while (n % checker == 0) {
+                factors.push_back(checker);
+                n /= checker;
+            }
+
+            if (checker > n) break;
+        }
+
+        std::vector<uint64_t> to_factor = {n};
+        while (to_factor.size()) {
+            n = to_factor.back();
+            to_factor.pop_back();
+
+            if (n == 1) continue;
+            if (op::isprime(n)) {
+                factors.push_back(n);
+                continue;
+            }
+
+            // Get (not necessarily prime) factor of n.
+            uint64_t factor = detail::pollard_brent(n);
+            to_factor.push_back(factor);
+            to_factor.push_back(n / factor);
+        }
+
+        return factors;
+    }
+    
+
+
+
 
     namespace detail {
         template<class T, class U, bool=std::is_signed<T>::value, bool=std::is_signed<U>::value>
@@ -171,6 +413,10 @@ namespace op {
 
     template<class T, class U>
     inline constexpr bool safe_less(T x, U y) {
+        // TODO: allow float-integer comparison
+        static_assert(std::is_integral<T>::value == std::is_integral<U>::value,
+                      "op::safe_less only works if both types are integer or float");
+
         return detail::safe_less_helper<T, U>::eval(x, y);
     }
 
