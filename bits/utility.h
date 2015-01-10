@@ -17,7 +17,6 @@ namespace op {
     // Needed for declarations below.
     namespace detail {
         template<class T, T N, int = (N == 0 || N == 1) ? N : 2> struct Seq;
-        template<class Func, class Tuple> struct TupleVisitRet;
     }
 
     // make_array(...) is a helper function to create a std::array with a derived type and size.
@@ -39,13 +38,13 @@ namespace op {
     
     // tuple_visit(tuple, index, func) returns func(std::get<index>(tuple)). std::out_of_range is
     // thrown when the index is out of bounds of the tuple.
-    template<class Func, class Tuple, class Ret = typename detail::TupleVisitRet<Func, Tuple>::type>
-    Ret tuple_visit(const Tuple& tuple, std::size_t index, const Func& func);
+    template<class Func, class Tuple,
+             class Ret = decltype(std::declval<Func>()(std::get<0>(std::declval<Tuple>())))>
+    Ret tuple_visit(Tuple&& tuple, std::size_t index, const Func& func);
 
-    // visit_copy<T>()(arg) returns a copy of its argument if implicitly convertible to T, throws a
-    // std::invalid_argument otherwise.
-    template<class T>
-    struct visit_copy;
+    // visit_forward<T>()(arg) returns arg implicitly converted to T, throws a std::invalid_argument
+    // if it can't be implicitly converted.
+    template<class T> struct visit_forward;
 
     // drop-in replacement for C++14 std::integer_sequence
     template<class T, T... I>
@@ -89,25 +88,18 @@ namespace op {
         template<class T, T N> struct Seq<T, N, 1> { using type = integer_sequence<T, 0>; };
 
 
-        template<class Func, class Tuple> struct TupleVisitRet;
-        template<class Func, template<class...> class Tuple, class ...Args>
-        struct TupleVisitRet<Func, Tuple<Args...>> {
-            using type = typename std::common_type<
-                decltype(std::declval<Func>()(std::declval<Args>()))...
-            >::type;
-        };
-
         template<class Ret, class Tuple, class Func>
-        inline Ret tuple_visit_helper(const Tuple&, std::size_t, const Func&,
-                                      op::index_sequence<>) {
+        inline Ret tuple_visit_helper(Tuple&&, std::size_t, const Func&, op::index_sequence<>) {
             throw std::out_of_range("tuple index is out of bounds");
         }
 
         template<class Ret, class Tuple, class Func, std::size_t N, std::size_t... Tail>
-        inline Ret tuple_visit_helper(const Tuple& tuple, std::size_t index, const Func& func,
+        inline Ret tuple_visit_helper(Tuple&& tuple, std::size_t index, const Func& func,
                                       op::index_sequence<N, Tail...>) {
             if (index == N) return func(std::get<N>(tuple));
-            return tuple_visit_helper<Ret>(tuple, index, func, op::index_sequence<Tail...>());
+
+            return tuple_visit_helper<Ret>(std::forward<Tuple>(tuple), index, func,
+                                           op::index_sequence<Tail...>());
         }
     }
 
@@ -133,11 +125,13 @@ namespace op {
 
     class range {
     public:
-        class iterator : public std::iterator<std::input_iterator_tag, int64_t> {
+        class iterator : public std::iterator<std::bidirectional_iterator_tag, int64_t> {
         public:
             int64_t operator*() const { return cur_; }
             iterator& operator++() { cur_ += step_; return *this; }
             iterator operator++(int) { iterator tmp(*this); cur_ += step_; return tmp; }
+            iterator& operator--() { cur_ -= step_; return *this; }
+            iterator operator--(int) { iterator tmp(*this); cur_ -= step_; return tmp; }
 
             bool operator==(const iterator& other) { return cur_ == other.cur_; }
             bool operator!=(const iterator& other) { return cur_ != other.cur_; }
@@ -152,12 +146,10 @@ namespace op {
         };
 
         template<class T>
-        range(T stop)
-        : start_(0), stop_(conv_int64(stop)), step_(1) { }
+        range(T stop) : start_(0), stop_(conv_int64(stop)), step_(1) { }
 
         template<class T, class U>
-        range(T start, U stop)
-        : start_(conv_int64(start)), stop_(conv_int64(stop)), step_(1) {
+        range(T start, U stop) : start_(conv_int64(start)), stop_(conv_int64(stop)), step_(1) {
             if (stop_ < start_) start_ = stop_;
         }
         
@@ -207,24 +199,22 @@ namespace op {
 
 
     template<class Func, class Tuple, class Ret>
-    inline Ret tuple_visit(const Tuple& tuple, std::size_t index, const Func& func) {
-        return detail::tuple_visit_helper<Ret>(tuple, index, func,
-                   op::make_index_sequence<std::tuple_size<Tuple>::value>());
+    inline Ret tuple_visit(Tuple&& tuple, std::size_t index, const Func& func) {
+        return detail::tuple_visit_helper<Ret>(std::forward<Tuple>(tuple), index, func,
+               op::make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value>());
     }
 
 
     template<class T>
-    struct visit_copy {
+    struct visit_forward {
         template<class U>
-        typename std::enable_if<std::is_convertible<const U&, T>::value, T>::type
-        operator()(const U& u) const { return u; }
+        typename std::enable_if<std::is_convertible<U, T>::value, T>::type
+        operator()(U&& u) const { return std::forward<U>(u); }
         
         T operator()(...) const {
-            throw std::invalid_argument("visit_copy called with unconvertible type");
+            throw std::invalid_argument("visit_forward called with unforwardable type");
         }
     };
 }
-
-
 
 #endif

@@ -85,18 +85,20 @@ int main(int argc, char **argv) {
     struct NonPrintable { };
     auto x = std::make_tuple(2, "test", 3, 8.4, NonPrintable());
 
-    auto d = op::tuple_visit(x, 3, op::visit_copy<double>());
+
+    op::tuple_visit(x, 3, op::visit_forward<double&>()) = 42.42;
+    auto d = op::tuple_visit(x, 3, op::visit_forward<double>());
     std::cout << d << "\n";
 
-    std::cout << op::tuple_visit(x, 2, op::visit_copy<int>()) << "\n";         // 3
-    std::cout << op::tuple_visit(x, 1, op::visit_copy<std::string>()) << "\n"; // test
+    std::cout << op::tuple_visit(x, 2, op::visit_forward<int>()) << "\n";         // 3
+    std::cout << op::tuple_visit(x, 1, op::visit_forward<std::string>()) << "\n"; // test
 
     // can't implicitly convert from int to string
-    try { std::cout << op::tuple_visit(x, 0, op::visit_copy<std::string>()) << "\n"; }
+    try { std::cout << op::tuple_visit(x, 0, op::visit_forward<std::string>()) << "\n"; }
     catch (const std::exception& e) { std::cout << e.what() << "\n"; }
 
     // out of bounds
-    try { op::tuple_visit(x, 5, op::visit_copy<int>()); }
+    try { op::tuple_visit(x, 5, op::visit_forward<int>()); }
     catch (const std::exception& e) { std::cout << e.what() << "\n"; }
 
     op::fformat(std::cout, "{0:.*1}\n", 5.1243, 3);
@@ -107,7 +109,6 @@ int main(int argc, char **argv) {
     op::fformat(std::cout, "{:'*10}\n", 34.2348);
     op::fformat(std::cout, "{:'*<10}\n", "test");
     op::fformat(std::cout, "{:'*10}\n", "test");
-
 
     return 0;
 }

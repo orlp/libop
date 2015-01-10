@@ -8,6 +8,7 @@
 #include "bits/math.h"
 #include "bits/random.h"
 #include "bits/string.h"
+#include "bits/type_traits.h"
 #include "bits/utility.h"
 
 #endif
