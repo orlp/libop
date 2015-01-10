@@ -28,9 +28,9 @@ namespace op {
         replacement field is encountered. A replacement field is enclosed by curly braces. This
         means you'll have to escape literal curly braces by doubling them: {{ and }}.
 
-        Formatting is stateless and independent of the current options/flags of the output stream.
-        All options/flags of the stream are saved before formatting takes place and are restored to
-        their original values when done.
+        Formatting is stateless and totally independent of the current options/flags of the output
+        stream. All options/flags of the stream are saved before formatting takes place and are
+        restored to their original values when done. Neither side can affect the other.
 
         When a replacement field is encountered it gets parsed using the following grammar:
 
@@ -74,17 +74,20 @@ namespace op {
         for the width as an integer in the passed arguments. If the index is omitted it will
         automatically be derived as one plus the last used index. Note that the index for width
         counts as "the last used index" for future indexing operations. For example the three
-        following format calls are identical:
+        following format calls are all identical:
 
-            format("{0:'010} {1}\n", 12345, 42)
-            format("{0:'0*1} {2}\n", 12345, 10, 42)
-            format("{:'0*} {}\n",    12345, 10, 42)
+            format("{0:'_10} {1}\n", 12345, 42)
+            format("{0:'_*1} {2}\n", 12345, 10, 42)
+            format("{:'_*} {}\n",    12345, 10, 42)
+
+            All result in "_____12345".
         
         After the width the precision is parsed in similar fashion. The precision always starts with
         a period (.) and gets passed to out.precision(precision). The default precision is 6.
 
         Finally you can specify zero or more flags. Each flag will result in a manipulator being
-        streamed into the output stream.  The meaning of the flag codes is as following:
+        streamed into the output stream before the argument. The meaning of the flag codes is as
+        following:
 
             t -> std::boolalpha
             f -> std::fixed
@@ -275,7 +278,7 @@ namespace op {
                     auto_index = width_index + 1;
 
                     fmt_params.width = op::tuple_visit(args_tuple, width_index,
-                                                       op::visit_copy<std::streamsize>());
+                                                       op::visit_forward<std::streamsize>());
                 } else {
                     detail::parse_integer(fmt_params.width, str, zero);
                 }
@@ -291,8 +294,9 @@ namespace op {
                         detail::parse_integer(precision_index, str, zero);
                         auto_index = precision_index + 1;
 
-                        fmt_params.precision = op::tuple_visit(args_tuple, precision_index,
-                                                               op::visit_copy<std::streamsize>());
+                        fmt_params.precision =
+                            op::tuple_visit(args_tuple, precision_index,
+                                            op::visit_forward<std::streamsize>());
                     } else {
                         if (!detail::parse_integer(fmt_params.precision, str, zero)) {
                             throw std::runtime_error("expected precision after .");
