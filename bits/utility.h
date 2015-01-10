@@ -210,8 +210,11 @@ namespace op {
         template<class U>
         typename std::enable_if<std::is_convertible<U, T>::value, T>::type
         operator()(U&& u) const { return std::forward<U>(u); }
-        
-        T operator()(...) const {
+
+
+        template<class U>
+        typename std::enable_if<!std::is_convertible<U, T>::value, T>::type
+        operator()(U&& u) const {
             throw std::invalid_argument("visit_forward called with unforwardable type");
         }
     };
