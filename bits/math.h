@@ -34,7 +34,7 @@ namespace op {
 
     // Streams every prime less than limit as an uin64_t into out.
     template<class OutIter>
-    inline void primesbelow(uint64_t limit, OutIter out);
+    inline void primes_below(uint64_t limit, OutIter out);
 
     // Returns b**e % m.
     inline uint64_t powmod(uint64_t b, uint64_t e, uint64_t m);
@@ -44,7 +44,7 @@ namespace op {
     inline bool isprime(T n);
 
     // Returns a vector containing the prime factors of n.
-    inline std::vector<uint64_t> primefactors(uint64_t n);
+    inline std::vector<uint64_t> prime_factors(uint64_t n);
 
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
@@ -213,7 +213,7 @@ namespace op {
 
 
     template<class OutIter>
-    inline void primesbelow(uint64_t limit, OutIter out) {
+    inline void primes_below(uint64_t limit, OutIter out) {
         // http://stackoverflow.com/questions/4643647/fast-prime-factorization-module
         if (limit > 2) *out++ = 2;
         if (limit > 3) *out++ = 3;
@@ -419,7 +419,7 @@ namespace op {
         static std::set<int> smallprimeset;
 
         if (smallprimeset.size() == 0) {
-            op::primesbelow(max_smallprimeset, std::inserter(smallprimeset, smallprimeset.begin()));
+            op::primes_below(max_smallprimeset, std::inserter(smallprimeset, smallprimeset.begin()));
         }
 
         if (n <= 3) return n >= 2;
@@ -509,9 +509,9 @@ namespace op {
     }
 
 
-    inline std::vector<uint64_t> primefactors(uint64_t n) {
+    inline std::vector<uint64_t> prime_factors(uint64_t n) {
         static std::vector<int> smallprimes;
-        if (smallprimes.size() == 0) op::primesbelow(1000, std::back_inserter(smallprimes));
+        if (smallprimes.size() == 0) op::primes_below(1000, std::back_inserter(smallprimes));
 
         std::vector<uint64_t> factors;
         for (uint64_t checker : smallprimes) {
