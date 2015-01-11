@@ -559,8 +559,8 @@ namespace op {
 
         uint64_t r = 1;
         for (auto factor : factorization(n)) {
-            r *= p.first - 1;
-            for (int i = 0; i < p.second; ++i) r *= p.first;
+            r *= factor.first - 1;
+            for (int i = 0; i < factor.second; ++i) r *= factor.first;
         }
 
         return r;
