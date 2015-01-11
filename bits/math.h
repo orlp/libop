@@ -220,39 +220,164 @@ namespace op {
 
     namespace detail {
         // Computes (a + b) % m, assumes a < m, b < m.
-        uint64_t addmod64(uint64_t a, uint64_t b, uint64_t m) {
+        inline uint64_t addmod64(uint64_t a, uint64_t b, uint64_t m) {
             if (b >= m - a) return a - m + b;
             return a + b;
         }
 
-        // Computes (a*b) % m safely, considering overflow. Requires b < m;
-        uint64_t mulmod64(uint64_t a, uint64_t b, uint64_t m) {
-            // No overflow possible.
-            if (b <= std::numeric_limits<uint64_t>::max() / a) return (a*b) % m;
+        // Computes (a || b) % m.
+        inline uint64_t mod64(uint64_t a, uint64_t b, uint64_t m) {
+            #if defined(__GNUC__) && defined(__x86_64__)
+                uint64_t q, r;
+                asm("divq %4"
+                    : "=a"(q),"=d"(r)
+                    : "a"(b), "d" (a), "rm"(m)
+                    : "cc");
+                return r;
+            #else
+                #error no mod64 implementation
+            #endif
 
-            uint64_t res = 0;
-            while (a != 0) {
-                if (a & 1) res = addmod64(res, b, m);
-                a >>= 1;
-                b = addmod64(b, b, m);
+            // TODO: fallback implementation
+        }
+
+
+        inline std::pair<uint64_t, uint64_t> mul64(uint64_t a, uint64_t b) {
+            #if defined(__GNUC__) && defined(__x86_64__)
+                uint64_t h, l;
+                asm("mulq %3"
+                    : "=a"(l),"=d"(h)
+                    : "a"(a), "rm"(b)
+                    : "cc");
+                return std::make_pair(h, l);
+            #else
+                #error no mul64 implementation
+            #endif
+
+            // TODO: fallback implementation
+        }
+
+
+        // Finds 2^-64 mod m and (-m)^-1 mod m for odd m (hacker's delight).
+        inline std::pair<uint64_t, uint64_t> mont_modinv(uint64_t m) {
+            uint64_t a = 1ull << 63;
+            uint64_t u = 1;
+            uint64_t v = 0;
+
+            while (a > 0) {
+                a = a >> 1;
+                if ((u & 1) == 0) {
+                    u = u >> 1; v = v >> 1;
+                } else {
+                    u = ((u ^ m) >> 1) + (u & m);
+                    v = (v >> 1) + (1ull << 63);
+                }
             }
 
-            return res;
+            return std::make_pair(u, v);
+        }
+
+
+        // Computes aR * bR mod N with R = 2**64.
+        inline uint64_t montmul64(uint64_t a, uint64_t b, uint64_t N, uint64_t Nneginv) {
+            uint64_t Th, Tl, m, mNh, mNl, th;
+
+            std::tie(Th, Tl) = mul64(a, b);
+            m = Tl * Nneginv;
+            std::tie(mNh, mNl) = mul64(m, N);
+
+            bool lc = Tl + mNl < Tl;
+            th = Th + mNh + lc;
+            bool hc = (th < Th) || (th == Th && lc);
+
+            if (hc > 0 || th >= N) th = th - N;
+
+            return th;
+        }
+
+
+        // Computes (a*b) % m safely, considering overflow. Requires b < m;
+        inline uint64_t mulmod64(uint64_t a, uint64_t b, uint64_t m) {
+            #if defined(__GNUC__) && defined(__x86_64__)
+                uint64_t q, r;
+                asm("mulq %3;"
+                    "divq %4;"
+                    : "=a"(q), "=d"(r)
+                    : "a"(a), "d"(b), "rm"(m)
+                    : "cc");
+                return r;
+            #else
+                // No overflow possible.
+                if (a == 0) return b;
+                if (b <= std::numeric_limits<uint64_t>::max() / a) return (a*b) % m;
+
+                uint64_t res = 0;
+                while (a != 0) {
+                    if (a & 1) res = addmod64(res, b, m);
+                    a >>= 1;
+                    b = addmod64(b, b, m);
+                }
+
+                return res;
+            #endif
         }
     }
 
 
-    uint64_t powmod(uint64_t b, uint64_t e, uint64_t m) {
+    inline uint64_t powmod(uint64_t b, uint64_t e, uint64_t m) {
         uint64_t r = 1;
 
         b %= m;
         while (e) {
             if (e % 2 == 1) r = detail::mulmod64(r, b, m);
-            e >>= 1;
             b = detail::mulmod64(b, b, m);
+            e >>= 1;
         }
 
         return r;
+    }
+
+    namespace detail {
+        template<class Iter>
+        inline bool miller_rabin(uint64_t n, Iter base_begin, Iter base_end) {
+            // We only ever have to compare to 1 and n-1, instead of converting back and forth,
+            // compute once and compare in Montgomery form.
+            uint64_t nneginv = detail::mont_modinv(n).second;
+            uint64_t mont1 = detail::mod64(1, 0, n);
+            uint64_t montn1 = detail::mod64(n-1, 0, n);
+
+            uint64_t d = n - 1;
+            int s = -1;
+            while (d % 2 == 0) {
+                d /= 2;
+                s += 1;
+            }
+
+            for (Iter it = base_begin; it != base_end; ++it) {
+                uint64_t x = mont1;
+                uint64_t b = detail::mod64(*it % n, 0, n);
+
+                uint64_t e = d;
+                while (e) {
+                    if (e % 2 == 1) x = detail::montmul64(x, b, n, nneginv);
+                    b = detail::montmul64(b, b, n, nneginv);
+                    e >>= 1;
+                }
+
+                if (x == mont1 || x == montn1) continue;
+
+                for (int i = 0; i < s; ++i) {
+                    x = detail::montmul64(x, x, n, nneginv);
+                    if (x == mont1) return false;
+                    if (x == montn1) goto next_base;
+                }
+
+                return false;
+            next_base: ;
+            }
+
+            return true;
+        }
     }
 
 
@@ -267,6 +392,7 @@ namespace op {
 
     template<>
     inline bool isprime(uint64_t n) {
+        // Miller-rabin with a check for small primes first.
         constexpr int max_smallprimeset = 100000;
         static std::set<int> smallprimeset;
 
@@ -278,72 +404,85 @@ namespace op {
         if (n % 2 == 0) return false;
         if (n < max_smallprimeset) return smallprimeset.count(n);
 
-        uint64_t d = n - 1;
-        int s = -1;
-        while (d % 2 == 0) {
-            d /= 2;
-            s += 1;
-        }
+        uint64_t s1[] = {9345883071009581737ull};
+        uint64_t s2[] = {336781006125ull, 9639812373923155ull};
+        uint64_t s3[] = {4230279247111683200ull, 14694767155120705706ull, 16641139526367750375ull};
+        uint64_t s4[] = {2ull, 141889084524735ull, 1199124725622454117ull, 11096072698276303650ull};
+        uint64_t s5[] = {2ull, 4130806001517ull, 149795463772692060ull, 186635894390467037ull,
+                         3967304179347715805ull};
+        uint64_t s6[] = {2ull, 123635709730000ull, 9233062284813009ull, 43835965440333360ull,
+                         761179012939631437ull, 1263739024124850375ull};
+        uint64_t s7[] = {2ull, 325ull, 9375ull, 28178ull, 450775ull, 9780504ull, 1795265022ull};
 
-        uint64_t bases[] = {2, 325, 9375, 28178, 450775, 9780504, 1795265022};
-        for (auto base : bases) {
-            uint64_t x = op::powmod(base, d, n);
-
-            if (x == 1 || x == n - 1) continue;
-            for (int i = 0; i < s; ++i) {
-                x = detail::mulmod64(x, x, n);
-
-                if (x == 1) return false;
-                if (x == n - 1) goto next_base;
-            }
-
-            return false;
-        next_base: ;
-        }
-
-        return true;
+        if (n < 341531) return detail::miller_rabin(n, std::begin(s1), std::end(s1));
+        if (n < 1050535501) return detail::miller_rabin(n, std::begin(s2), std::end(s2));
+        if (n < 350269456337) return detail::miller_rabin(n, std::begin(s3), std::end(s3));
+        if (n < 55245642489451) return detail::miller_rabin(n, std::begin(s4), std::end(s4));
+        if (n < 7999252175582851) return detail::miller_rabin(n, std::begin(s5), std::end(s5));
+        if (n < 585226005592931977) return detail::miller_rabin(n, std::begin(s6), std::end(s6));
+        return detail::miller_rabin(n, std::begin(s7), std::end(s7));
     }
+
     
 
     namespace detail {
-        uint64_t pollard_brent(uint64_t n) {
-            static std::mt19937_64 rng((op::random_device()()));
+        inline uint64_t pollard_brent(uint64_t n) {
+            // Richard P. Brent (1980) – An Improved Monte Carlo Factorization Algorithm
+            //
+            // A cool optimization is used here. Firstly we use the much faster Montgomery reduction
+            // for modular multiplication. However, note that:
+            //
+            //     a = b (mod n)   =>    gcd(a, n) = gcd(b, n)
+            //
+            // Since our result is always derived through a gcd involving n, and all logic and
+            // branching is done on the result of such a gcd, it means we'll never have to convert
+            // between Montgomery form and regular integers. In other words, Pollard-Brent just
+            // works if you change all multiplications with Montgomery multiplication!
+            //
+            // The only precomputation needed is (-N)*2^64 (mod n)
+            
+            // Really simple LCG with a twist. Don't know how it works, but it works and is faster
+            // than "better" RNGs for some reason.
+            static uint64_t rng = 0xdeafbeef;
+            uint64_t a = rng*6364136223846793005ull + 1442695040888963407ull;
+            uint64_t b = a*6364136223846793005ull + 1442695040888963407ull;
+            rng = (a+b) ^ (a*b);
 
-            uint64_t y = op::randint<uint64_t>(1, n-1, rng);
-            uint64_t c = op::randint<uint64_t>(1, n-1, rng);
-            uint64_t m = op::randint<uint64_t>(1, n-1, rng);
+            uint64_t y = 1 + a % (n - 1);
+            uint64_t c = 1 + b % (n - 1);
+            uint64_t m = 100;
+            
+            uint64_t nneginv = detail::mont_modinv(n).second;
 
             uint64_t g, r, q, x, ys;
-            g = r = q = 1;
+            q = r = 1;
 
-            while (g == 1) {
+            do {
                 x = y;
-
                 for (uint64_t i = 0; i < r; ++i) {
-                    y = detail::addmod64(detail::mulmod64(y, y, n), c, n);
+                    y = detail::addmod64(detail::montmul64(y, y, n, nneginv), c, n);
                 }
 
                 for (uint64_t k = 0; k < r && g == 1; k += m) {
                     ys = y;
-
                     for (uint64_t i = 0; i < std::min(m, r-k); ++i) {
-                        y = detail::addmod64(detail::mulmod64(y, y, n), c, n);
-                        q = detail::mulmod64(q, x < y ? y-x : x-y, n);
+                        y = detail::addmod64(detail::montmul64(y, y, n, nneginv), c, n);
+                        q = detail::montmul64(q, x < y ? y-x : x-y, n, nneginv);
                     }
 
                     g = op::gcd(q, n);
                 }
 
                 r *= 2;
-            }
+            } while (g == 1);
 
             if (g == n) {
                 do {
-                    ys = detail::addmod64(detail::mulmod64(ys, ys, n), c, n);
+                    ys = detail::addmod64(detail::montmul64(ys, ys, n, nneginv), c, n);
                     g = op::gcd(x < ys ? ys-x : x-ys, n);
                 } while (g == 1);
             }
-
+            
             return g;
         }
     }
@@ -374,7 +513,7 @@ namespace op {
                 continue;
             }
 
-            // Get (not necessarily prime) factor of n.
+            // Get a (not necessarily prime) factor of n.
             uint64_t factor = detail::pollard_brent(n);
             to_factor.push_back(factor);
             to_factor.push_back(n / factor);
@@ -382,9 +521,6 @@ namespace op {
 
         return factors;
     }
-    
-
-
 
 
     namespace detail {

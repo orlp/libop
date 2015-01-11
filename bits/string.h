@@ -53,9 +53,10 @@ namespace op {
 namespace op {
     template<class InIter>
     inline std::string join(InIter begin, InIter end, const std::string& sep) {
-        std::stringstream s;
+        if (begin == end) return "";
 
-        if (begin != end) s << *begin;
+        std::stringstream s;
+        s << *begin;
         for (++begin; begin != end; ++begin) s << sep << *begin;
         
         return s.str();
