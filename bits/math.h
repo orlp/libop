@@ -544,6 +544,28 @@ namespace op {
     }
 
 
+    std::map<uint64_t, int> factorization(uint64_t n) {
+        std::map<uint64_t, int> factors;
+
+        for (auto factor : op::prime_factors(n)) factors[factor]++;
+
+        return factors;
+    }
+    
+
+    uint64_t totient(uint64_t n) {
+        if (n == 0) return 1;
+
+        uint64_t r = 1;
+        for (auto factor : factorization(n)) {
+            r *= p.first - 1;
+            for (int i = 0; i < p.second; ++i) r *= p.first;
+        }
+
+        return r;
+    }
+
+
     namespace detail {
         template<class T, class U, bool=std::is_signed<T>::value, bool=std::is_signed<U>::value>
         struct safe_less_helper;
