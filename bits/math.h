@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <set>
 #include <iterator>
+#include <map>
 
 #include "random.h"
 
