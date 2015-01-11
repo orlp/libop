@@ -24,6 +24,28 @@ namespace op {
     template<class T>
     inline uint32_t isqrt(T x);
 
+    // Returns the greatest common divisor of a and b.
+    template<class T, class U>
+    inline uint64_t gcd(T a, U b);
+
+    // Returns the least common multiple of a and b.
+    template<class T, class U>
+    inline uint64_t lcm(T a, U b);
+
+    // Streams every prime less than limit as an uin64_t into out.
+    template<class OutIter>
+    inline void primesbelow(uint64_t limit, OutIter out);
+
+    // Returns b**e % m.
+    inline uint64_t powmod(uint64_t b, uint64_t e, uint64_t m);
+
+    // Returns true if n is prime.
+    template<class T>
+    inline bool isprime(T n);
+
+    // Returns a vector containing the prime factors of n.
+    inline std::vector<uint64_t> primefactors(uint64_t n);
+
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
     constexpr bool safe_less(T x, U y);
@@ -382,11 +404,11 @@ namespace op {
 
 
     template<class T>
-    inline bool isprime(T x) {
+    inline bool isprime(T n) {
         static_assert(std::is_integral<T>::value, "op::isprime only works on integer types");
 
-        if (x < 2) return false;
-        return op::isprime<uint64_t>(x);
+        if (n < 2) return false;
+        return op::isprime<uint64_t>(n);
     }
 
 
@@ -423,7 +445,6 @@ namespace op {
         return detail::miller_rabin(n, std::begin(s7), std::end(s7));
     }
 
-    
 
     namespace detail {
         inline uint64_t pollard_brent(uint64_t n) {
