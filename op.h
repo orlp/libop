@@ -10,5 +10,6 @@
 #include "bits/string.h"
 #include "bits/type_traits.h"
 #include "bits/utility.h"
+#include "bits/intrin.h"
 
 #endif

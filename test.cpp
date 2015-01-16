@@ -12,6 +12,9 @@ struct B : A {};
 void f(A) {}
 
 
+
+
+
 int main(int argc, char **argv) {
     std::seed_seq sseq{1, 3};
     op::random_device rd;
@@ -126,39 +129,36 @@ int main(int argc, char **argv) {
 /*     op::fformat(std::cout, "{:'*10}\n", "test"); */
 
 
-    auto factors = op::primefactors(6776292859316218060ull);
+    auto factors = op::prime_factors(6776292859316218060ull);
     std::string p = op::join(factors.begin(), factors.end());
 
 
-    auto start = std::chrono::steady_clock::now();
-    for (int i : op::range(10000)) {
-        uint64_t n = op::randint<uint64_t>(0, -1, rng);
-    auto start = std::chrono::steady_clock::now();
-        auto factors = op::primefactors(n);
-        uint64_t m = 1;
-        for (auto factor : factors) m *= factor;
-        if (m != n) op::print(n, m);
-    auto end = std::chrono::steady_clock::now();
-        std::string p = op::join(factors.begin(), factors.end());
-
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() > 1000) {
-            op::print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            op::print(n);
-            op::print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        }
-
+    uint64_t size = -1;
+    uint64_t num = 1000000;
+    {auto start = std::chrono::steady_clock::now();
+    for (int i : op::range(num)) {
+        uint64_t n = op::randint<uint64_t>(0, size, rng);
+        volatile auto factors = op::isprime(n);
     }
     auto end = std::chrono::steady_clock::now();
-    op::print(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+    op::print(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());}
 
-    auto f = op::primefactors(392853920582390413ull);
+    {auto start = std::chrono::steady_clock::now();
+    for (int i : op::range(num)) {
+        uint64_t n = op::randint<uint64_t>(0, size, rng);
+        volatile auto factors = op::isprime2(n*n);
+    }
+    auto end = std::chrono::steady_clock::now();
+    op::print(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());}
+
+    auto f = op::prime_factors(392853920582390413ull);
     //op::print(op::join(f.begin(), f.end()));
     //
 
-    uint64_t abar = op::detail::mod64(30, 0, 6342983469);
-    uint64_t bbar = op::detail::mod64(41, 0, 6342983469);
+    uint64_t abar = op::modu128_64(30, 0, 6342983469);
+    uint64_t bbar = op::modu128_64(41, 0, 6342983469);
     op::print(abar);
-    //op::print(op::detail::mulmod64(op::detail::mont_modinv(6342983469).first, op::detail::montmul(abar, bbar, 6342983469, op::detail::mont_modinv(6342983469).second), 6342983469));
+    //op::print(op::modu128_64(op::detail::mont_modinv(6342983469).first, op::detail::montmul(abar, bbar, 6342983469, op::detail::mont_modinv(6342983469).second), 6342983469));
     op::print(op::detail::mont_modinv(6342983469).first);
 
     op::print(op::detail::mont_modinv(6342983469).second);

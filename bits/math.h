@@ -9,43 +9,53 @@
 #include <iterator>
 #include <map>
 
-#include "random.h"
+#include "intrin.h"
 
 
 namespace op {
     // Returns base to the power of exp.
     template<int exp, class T>
     constexpr T pow(T base);
+    
+    // Returns base to the power of exp modulo mod.
+    uint64_t powmod(uint64_t base, uint64_t exp, uint64_t mod);
+
+    // Returns base to the power of exp.
+    int64_t ipow(int32_t base, uint8_t exp);
 
     // Returns floor(log(x, base)) if x > 0, otherwise it returns -1.
     template<int base, class T>
     constexpr int ilog(T x);
 
-    // Returns the integer part of the square root of x.
+    // Returns the integer part of the square root of integer x.
     template<class T>
-    inline uint32_t isqrt(T x);
+    uint32_t isqrt(T x);
 
     // Returns the greatest common divisor of a and b.
     template<class T, class U>
-    inline uint64_t gcd(T a, U b);
+    uint64_t gcd(T a, U b);
 
     // Returns the least common multiple of a and b.
     template<class T, class U>
-    inline uint64_t lcm(T a, U b);
+    uint64_t lcm(T a, U b);
 
     // Streams every prime less than limit as an uin64_t into out.
     template<class OutIter>
-    inline void primes_below(uint64_t limit, OutIter out);
-
-    // Returns b**e % m.
-    inline uint64_t powmod(uint64_t b, uint64_t e, uint64_t m);
+    void primes_below(uint64_t limit, OutIter out);
 
     // Returns true if n is prime.
     template<class T>
-    inline bool isprime(T n);
+    bool isprime(T n);
 
     // Returns a vector containing the prime factors of n.
-    inline std::vector<uint64_t> prime_factors(uint64_t n);
+    std::vector<uint64_t> prime_factors(uint64_t n);
+
+    // Returns a map with the prime factors of n as the key, and how many times the prime factor
+    // occurs in the factorization of n as the value.
+    std::map<uint64_t, int> factorization(uint64_t n);    
+
+    // Eulers totient function.
+    uint64_t totient(uint64_t n);
 
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
@@ -74,7 +84,7 @@ namespace op {
         inline constexpr T pow_impl(T base, uint64_t result = 1) {
             return
                 exp ? (
-                    exp & 1 ? (
+                    (exp & 1) ? (
                         pow_impl<(exp >> 1)>(base * base, base * result)
                     ) : (
                         pow_impl<(exp >> 1)>(base * base, result)
@@ -134,6 +144,55 @@ namespace op {
     }
 
 
+    int64_t ipow(int32_t base, uint8_t exp) {
+        static const uint8_t highest_bit_set[] = {
+              0,   1,   2,   2,   3,   3,   3,   3,
+              4,   4,   4,   4,   4,   4,   4,   4,
+              5,   5,   5,   5,   5,   5,   5,   5,
+              5,   5,   5,   5,   5,   5,   5,   5,
+              6,   6,   6,   6,   6,   6,   6,   6,
+              6,   6,   6,   6,   6,   6,   6,   6,
+              6,   6,   6,   6,   6,   6,   6,   6,
+              6,   6,   6,   6,   6,   6,   6
+        };
+
+        if (exp >= 63) {
+            if (base == 1) return 1;
+            if (base == -1) return 1 - 2 * (exp & 1);
+
+            throw std::domain_error("op::ipow");
+        }
+
+        uint64_t result = 1;
+        switch (highest_bit_set[exp]) {
+        case 6:
+            if (exp & 1) result *= base;
+            exp >>= 1;
+            base *= base;
+        case 5:
+            if (exp & 1) result *= base;
+            exp >>= 1;
+            base *= base;
+        case 4:
+            if (exp & 1) result *= base;
+            exp >>= 1;
+            base *= base;
+        case 3:
+            if (exp & 1) result *= base;
+            exp >>= 1;
+            base *= base;
+        case 2:
+            if (exp & 1) result *= base;
+            exp >>= 1;
+            base *= base;
+        case 1:
+            if (exp & 1) result *= base;
+        default:
+            return result;
+        }
+    }
+
+
     template<int base, class T>
     inline constexpr int ilog(T x) {
         static_assert(!(base <= 0), "op::ilog is not useful for base <= 0");
@@ -189,13 +248,31 @@ namespace op {
 
         uint64_t a = a_ >= 0 ? a_ : -a_;
         uint64_t b = b_ >= 0 ? b_ : -b_;
-        if (a == b) return a;
+        if (!a || !b) return a | b;
         
-        while (b > 0) {
-            uint64_t tmp = a;
-            a = b;
-            b = tmp % b;
-        }
+        #if defined(__GNUC__) && defined(__x86_64__)
+            int shift = __builtin_ctzll(a | b);
+            a >>= __builtin_ctzll(a);
+        
+            while (b) {
+                b >>= __builtin_ctzll(b);
+
+                if (a < b) b -= a;
+                else {
+                    uint64_t t = a - b;
+                    a = b;
+                    b = t;
+                }
+            }
+
+            a <<= shift;
+        #else
+            while (b > 0) {
+                uint64_t t = a;
+                a = b;
+                b = t % b;
+            }
+        #endif
 
         return a;
     }
@@ -247,37 +324,11 @@ namespace op {
             if (b >= m - a) return a - m + b;
             return a + b;
         }
-
-        // Computes (a || b) % m.
-        inline uint64_t mod64(uint64_t a, uint64_t b, uint64_t m) {
-            #if defined(__GNUC__) && defined(__x86_64__)
-                uint64_t q, r;
-                asm("divq %4"
-                    : "=a"(q),"=d"(r)
-                    : "a"(b), "d" (a), "rm"(m)
-                    : "cc");
-                return r;
-            #else
-                #error no mod64 implementation
-            #endif
-
-            // TODO: fallback implementation
-        }
-
-
-        inline std::pair<uint64_t, uint64_t> mul64(uint64_t a, uint64_t b) {
-            #if defined(__GNUC__) && defined(__x86_64__)
-                uint64_t h, l;
-                asm("mulq %3"
-                    : "=a"(l),"=d"(h)
-                    : "a"(a), "rm"(b)
-                    : "cc");
-                return std::make_pair(h, l);
-            #else
-                #error no mul64 implementation
-            #endif
-
-            // TODO: fallback implementation
+        
+        // Computes (a - b) % m, assumes a < m, b < m.
+        inline uint64_t submod64(uint64_t a, uint64_t b, uint64_t m) {
+            if (a < b) return m + a - b;
+            return a - b;
         }
 
 
@@ -305,9 +356,9 @@ namespace op {
         inline uint64_t montmul64(uint64_t a, uint64_t b, uint64_t N, uint64_t Nneginv) {
             uint64_t Th, Tl, m, mNh, mNl, th;
 
-            std::tie(Th, Tl) = mul64(a, b);
+            std::tie(Th, Tl) = op::mulu64(a, b);
             m = Tl * Nneginv;
-            std::tie(mNh, mNl) = mul64(m, N);
+            std::tie(mNh, mNl) = op::mulu64(m, N);
 
             bool lc = Tl + mNl < Tl;
             th = Th + mNh + lc;
@@ -317,33 +368,6 @@ namespace op {
 
             return th;
         }
-
-
-        // Computes (a*b) % m safely, considering overflow. Requires b < m;
-        inline uint64_t mulmod64(uint64_t a, uint64_t b, uint64_t m) {
-            #if defined(__GNUC__) && defined(__x86_64__)
-                uint64_t q, r;
-                asm("mulq %3;"
-                    "divq %4;"
-                    : "=a"(q), "=d"(r)
-                    : "a"(a), "d"(b), "rm"(m)
-                    : "cc");
-                return r;
-            #else
-                // No overflow possible.
-                if (a == 0) return b;
-                if (b <= std::numeric_limits<uint64_t>::max() / a) return (a*b) % m;
-
-                uint64_t res = 0;
-                while (a != 0) {
-                    if (a & 1) res = addmod64(res, b, m);
-                    a >>= 1;
-                    b = addmod64(b, b, m);
-                }
-
-                return res;
-            #endif
-        }
     }
 
 
@@ -352,8 +376,8 @@ namespace op {
 
         b %= m;
         while (e) {
-            if (e % 2 == 1) r = detail::mulmod64(r, b, m);
-            b = detail::mulmod64(b, b, m);
+            if (e % 2 == 1) r = op::mulmodu64(r, b, m);
+            b = op::mulmodu64(b, b, m);
             e >>= 1;
         }
 
@@ -361,45 +385,140 @@ namespace op {
     }
 
     namespace detail {
-        template<class Iter>
-        inline bool miller_rabin(uint64_t n, Iter base_begin, Iter base_end) {
-            // We only ever have to compare to 1 and n-1, instead of converting back and forth,
-            // compute once and compare in Montgomery form.
-            uint64_t nneginv = detail::mont_modinv(n).second;
-            uint64_t mont1 = detail::mod64(1, 0, n);
-            uint64_t montn1 = detail::mod64(n-1, 0, n);
-
+        // Assumes n is odd, does a strong probable prime test.
+        inline bool strong_probable_prime(uint64_t n, uint64_t base,
+                                          uint64_t mont1, uint64_t montn1, uint64_t nneginv) {
             uint64_t d = n - 1;
-            int s = -1;
-            while (d % 2 == 0) {
-                d /= 2;
+            int s = 0;
+            while ((d & 1) == 0) {
                 s += 1;
+                d >>= 1;
             }
 
-            for (Iter it = base_begin; it != base_end; ++it) {
-                uint64_t x = mont1;
-                uint64_t b = detail::mod64(*it % n, 0, n);
-
-                uint64_t e = d;
-                while (e) {
-                    if (e % 2 == 1) x = detail::montmul64(x, b, n, nneginv);
-                    b = detail::montmul64(b, b, n, nneginv);
-                    e >>= 1;
-                }
-
-                if (x == mont1 || x == montn1) continue;
-
-                for (int i = 0; i < s; ++i) {
-                    x = detail::montmul64(x, x, n, nneginv);
-                    if (x == mont1) return false;
-                    if (x == montn1) goto next_base;
-                }
-
-                return false;
-            next_base: ;
+            // x = b^d (mod n)
+            uint64_t x = mont1;
+            uint64_t b = op::modu128_64(base % n, 0, n);
+            uint64_t e = d;
+            while (e) {
+                if (e & 1) x = detail::montmul64(x, b, n, nneginv);
+                b = detail::montmul64(b, b, n, nneginv);
+                e >>= 1;
             }
 
-            return true;
+            if (x == mont1 || x == montn1) return true;
+
+            for (int r = 1; r < s; ++r) {
+                x = detail::montmul64(x, x, n, nneginv);
+                if (x == mont1) return false; // Early exit, 1^2 = 1 != n - 1.
+                if (x == montn1) return true;
+            }
+
+            return false;
+        }
+
+        // Returns the Jacobi symbol of a over n. Assumes n odd.
+        inline int jacobi(int64_t a_, uint64_t n) {
+            int r = 1;
+
+            // Handle negative a.
+            uint64_t a;
+            if (a_ < 0) {
+                if (n % 4 == 3) r = -r;
+                a = -a_;
+            } else a = a_;
+
+            while (true) {
+                a %= n;
+
+                // Divisibility by 4 can only cause double sign flips = no sign flips.
+                while (a && a % 4 == 0) a /= 4; 
+                if (a % 2 == 0) {
+                    a /= 2;
+                    if ((n % 8) == 3 || (n % 8) == 5) r = -r;
+                }
+                
+                if (a == 0) return 0;
+                if (a == 1) return r;
+
+                if ((a % 4 == 3) && (n % 4) == 3) r = -r;
+                std::swap(a, n);
+            }
+        }
+
+        // Performs a strong lucas probable primality test on n. Assumes n is odd and has no tiny
+        // factors.
+        inline bool strong_lucas_probable_prime(uint64_t n, uint64_t mont1, uint64_t nneginv) {
+            int64_t Dc = 5; // Candidate for D.
+            int j = jacobi(Dc, n);
+
+            while (j != -1) {
+                if (j == 0) return false;
+                if (Dc < 0) Dc =  2 - Dc;
+                else        Dc = -2 - Dc;
+
+                // Check if n is a square if we don't find a proper D quickly.
+                if (Dc == 13) {
+                    uint64_t n_sqrt = op::isqrt(n);
+                    if (n_sqrt * n_sqrt == n) return false;
+                }
+
+                j = jacobi(Dc, n);
+            }
+
+            // We need to divide by two, convert modular inverse of 2 to Montgomery form.
+            const uint64_t mont_div_2 = op::modu128_64((n + 1) / 2, 0, n);
+            
+            // Set up primality test.
+            uint64_t D = op::modu128_64(Dc < 0 ? n + Dc : Dc, 0, n);
+            uint64_t Q = op::modu128_64(Dc > 1 ? n + (1 - Dc) / 4 : (1 - Dc) / 4, 0, n);
+            uint64_t U = mont1;
+            uint64_t V = mont1;
+            uint64_t QQ = Q;
+            
+            uint64_t d = n + 1; // Can't overflow because 2^64-1 is divisible by 3.
+            int s = 0;
+            while ((d & 1) == 0) {
+                s += 1;
+                d >>= 1;
+            }
+
+            // Mask to step through bits from left to right.
+            uint64_t mask = d;
+            mask |= mask >> 1; mask |= mask >> 2; mask |= mask >> 4;
+            mask |= mask >> 8; mask |= mask >> 16; mask |= mask >> 32;
+            mask = (mask >> 1) ^ (mask >> 2);
+
+            while (mask) {
+                U = detail::montmul64(U, V, n, nneginv);
+                V = detail::montmul64(V, V, n, nneginv);
+                V = detail::submod64(V, QQ, n);
+                V = detail::submod64(V, QQ, n);
+                QQ = detail::montmul64(QQ, QQ, n, nneginv);
+
+                if (d & mask) {
+                    uint64_t U2 = detail::addmod64(U, V, n);
+                    uint64_t V2 = detail::addmod64(detail::montmul64(D, U, n, nneginv), V, n);
+                    U = detail::montmul64(U2, mont_div_2, n, nneginv);
+                    V = detail::montmul64(V2, mont_div_2, n, nneginv);
+                    QQ = detail::montmul64(QQ, Q, n, nneginv);
+                }
+
+                mask >>= 1;
+            }
+            
+            if (U == 0 || V == 0) return true;
+
+            for (int r = 1; r < s; ++r) {
+                V = detail::montmul64(V, V, n, nneginv);
+                V = detail::submod64(V, QQ, n);
+                V = detail::submod64(V, QQ, n);
+                
+                if (V == 0) return true;
+
+                QQ = detail::montmul64(QQ, QQ, n, nneginv);
+            }
+
+            return false;
         }
     }
 
@@ -413,11 +532,9 @@ namespace op {
     }
 
 
-    template<>
     inline bool isprime(uint64_t n) {
-        // Miller-rabin with a check for small primes first.
-        constexpr int max_smallprimeset = 100000;
-        static std::set<int> smallprimeset;
+        constexpr int max_smallprimeset = 10000; // About a 4K table.
+        static std::set<unsigned> smallprimeset;
 
         if (smallprimeset.size() == 0) {
             op::primes_below(max_smallprimeset, std::inserter(smallprimeset, smallprimeset.begin()));
@@ -427,23 +544,34 @@ namespace op {
         if (n % 2 == 0) return false;
         if (n < max_smallprimeset) return smallprimeset.count(n);
 
-        uint64_t s1[] = {9345883071009581737ull};
-        uint64_t s2[] = {336781006125ull, 9639812373923155ull};
-        uint64_t s3[] = {4230279247111683200ull, 14694767155120705706ull, 16641139526367750375ull};
-        uint64_t s4[] = {2ull, 141889084524735ull, 1199124725622454117ull, 11096072698276303650ull};
-        uint64_t s5[] = {2ull, 4130806001517ull, 149795463772692060ull, 186635894390467037ull,
-                         3967304179347715805ull};
-        uint64_t s6[] = {2ull, 123635709730000ull, 9233062284813009ull, 43835965440333360ull,
-                         761179012939631437ull, 1263739024124850375ull};
-        uint64_t s7[] = {2ull, 325ull, 9375ull, 28178ull, 450775ull, 9780504ull, 1795265022ull};
+        // Looping this is significantly slower.
+        if (n % 3 == 0 || n % 5 == 0 || n % 7 == 0 || n % 11 == 0 || n % 13 == 0 || n % 17 == 0 ||
+            n % 19 == 0 || n % 23 == 0 || n % 29 == 0 || n % 31 == 0 || n % 47 == 0) return false;
 
-        if (n < 341531) return detail::miller_rabin(n, std::begin(s1), std::end(s1));
-        if (n < 1050535501) return detail::miller_rabin(n, std::begin(s2), std::end(s2));
-        if (n < 350269456337) return detail::miller_rabin(n, std::begin(s3), std::end(s3));
-        if (n < 55245642489451) return detail::miller_rabin(n, std::begin(s4), std::end(s4));
-        if (n < 7999252175582851) return detail::miller_rabin(n, std::begin(s5), std::end(s5));
-        if (n < 585226005592931977) return detail::miller_rabin(n, std::begin(s6), std::end(s6));
-        return detail::miller_rabin(n, std::begin(s7), std::end(s7));
+        uint64_t mont1 = op::modu128_64(1, 0, n);
+        uint64_t montn1 = op::modu128_64(n-1, 0, n);
+        uint64_t nneginv = detail::mont_modinv(n).second;
+
+        if (n < 341531ull) {
+            return detail::strong_probable_prime(n, 9345883071009581737ull, mont1, montn1, nneginv);
+        }
+
+        if (n < 1050535501ull) {
+            return
+                detail::strong_probable_prime(n,     336781006125ull, mont1, montn1, nneginv) &&
+                detail::strong_probable_prime(n, 9639812373923155ull, mont1, montn1, nneginv);
+        }
+
+        if (n < 350269456337ull) {
+            return
+                detail::strong_probable_prime(n,  4230279247111683200ull, mont1, montn1, nneginv) &&
+                detail::strong_probable_prime(n, 14694767155120705706ull, mont1, montn1, nneginv) &&
+                detail::strong_probable_prime(n, 16641139526367750375ull, mont1, montn1, nneginv);
+        }
+
+        // Once we would need to check 4 bases a strong lucas probable prime check is faster.
+        return detail::strong_probable_prime(n, 2, mont1, montn1, nneginv) &&
+               detail::strong_lucas_probable_prime(n, mont1, nneginv);
     }
 
 
@@ -463,8 +591,8 @@ namespace op {
             //
             // The only precomputation needed is (-N)*2^64 (mod n)
             
-            // Really simple LCG with a twist. Don't know how it works, but it works and is faster
-            // than "better" RNGs for some reason.
+            // Really simple LCG with a twist. Don't know how it works, but it works and makes
+            // Pollard-Brent faster than "better" RNGs for some reason.
             static uint64_t rng = 0xdeafbeef;
             uint64_t a = rng*6364136223846793005ull + 1442695040888963407ull;
             uint64_t b = a*6364136223846793005ull + 1442695040888963407ull;
@@ -530,7 +658,7 @@ namespace op {
             to_factor.pop_back();
 
             if (n == 1) continue;
-            if (op::isprime(n)) {
+            if (op::isprime2(n)) {
                 factors.push_back(n);
                 continue;
             }
@@ -545,7 +673,7 @@ namespace op {
     }
 
 
-    std::map<uint64_t, int> factorization(uint64_t n) {
+    inline std::map<uint64_t, int> factorization(uint64_t n) {
         std::map<uint64_t, int> factors;
 
         for (auto factor : op::prime_factors(n)) factors[factor]++;
@@ -554,13 +682,12 @@ namespace op {
     }
     
 
-    uint64_t totient(uint64_t n) {
+    inline uint64_t totient(uint64_t n) {
         if (n == 0) return 1;
 
         uint64_t r = 1;
         for (auto factor : factorization(n)) {
-            r *= factor.first - 1;
-            for (int i = 0; i < factor.second; ++i) r *= factor.first;
+            r *= (factor.first - 1) * op::ipow(factor.first, factor.second - 1);
         }
 
         return r;
