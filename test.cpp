@@ -129,39 +129,23 @@ int main(int argc, char **argv) {
 /*     op::fformat(std::cout, "{:'*10}\n", "test"); */
 
 
-    auto factors = op::prime_factors(6776292859316218060ull);
-    std::string p = op::join(factors.begin(), factors.end());
 
 
     uint64_t size = -1;
-    uint64_t num = 1000000;
+    uint64_t num = 10000;
     {auto start = std::chrono::steady_clock::now();
     for (int i : op::range(num)) {
         uint64_t n = op::randint<uint64_t>(0, size, rng);
-        volatile auto factors = op::isprime(n);
+        auto factors = op::prime_factors(n);
+
+        uint64_t pr = 1;
+        for (auto factor : factors) pr *= factor;
+        if (pr != n) op::print("PANIC!!!!");
     }
     auto end = std::chrono::steady_clock::now();
     op::print(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());}
-
-    {auto start = std::chrono::steady_clock::now();
-    for (int i : op::range(num)) {
-        uint64_t n = op::randint<uint64_t>(0, size, rng);
-        volatile auto factors = op::isprime2(n*n);
-    }
-    auto end = std::chrono::steady_clock::now();
-    op::print(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());}
-
-    auto f = op::prime_factors(392853920582390413ull);
     //op::print(op::join(f.begin(), f.end()));
     //
-
-    uint64_t abar = op::modu128_64(30, 0, 6342983469);
-    uint64_t bbar = op::modu128_64(41, 0, 6342983469);
-    op::print(abar);
-    //op::print(op::modu128_64(op::detail::mont_modinv(6342983469).first, op::detail::montmul(abar, bbar, 6342983469, op::detail::mont_modinv(6342983469).second), 6342983469));
-    op::print(op::detail::mont_modinv(6342983469).first);
-
-    op::print(op::detail::mont_modinv(6342983469).second);
 
 
     return 0;

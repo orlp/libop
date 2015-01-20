@@ -399,6 +399,9 @@ namespace op {
             uint64_t x = mont1;
             uint64_t b = op::modu128_64(base % n, 0, n);
             uint64_t e = d;
+
+            if (b == 0) return true;
+
             while (e) {
                 if (e & 1) x = detail::montmul64(x, b, n, nneginv);
                 b = detail::montmul64(b, b, n, nneginv);
@@ -406,6 +409,7 @@ namespace op {
             }
 
             if (x == mont1 || x == montn1) return true;
+
 
             for (int r = 1; r < s; ++r) {
                 x = detail::montmul64(x, x, n, nneginv);
@@ -532,6 +536,7 @@ namespace op {
     }
 
 
+    template<>
     inline bool isprime(uint64_t n) {
         constexpr int max_smallprimeset = 10000; // About a 4K table.
         static std::set<unsigned> smallprimeset;
@@ -588,51 +593,46 @@ namespace op {
             // branching is done on the result of such a gcd, it means we'll never have to convert
             // between Montgomery form and regular integers. In other words, Pollard-Brent just
             // works if you change all multiplications with Montgomery multiplication!
-            //
-            // The only precomputation needed is (-N)*2^64 (mod n)
-            
-            // Really simple LCG with a twist. Don't know how it works, but it works and makes
-            // Pollard-Brent faster than "better" RNGs for some reason.
-            static uint64_t rng = 0xdeafbeef;
-            uint64_t a = rng*6364136223846793005ull + 1442695040888963407ull;
-            uint64_t b = a*6364136223846793005ull + 1442695040888963407ull;
-            rng = (a+b) ^ (a*b);
-
-            uint64_t y = 1 + a % (n - 1);
-            uint64_t c = 1 + b % (n - 1);
-            uint64_t m = 100;
-            
             uint64_t nneginv = detail::mont_modinv(n).second;
+            uint64_t mont1 = op::modu128_64(1, 0, n);
 
             uint64_t g, r, q, x, ys;
-            q = r = 1;
+            uint64_t rng = 1;
 
             do {
-                x = y;
-                for (uint64_t i = 0; i < r; ++i) {
-                    y = detail::addmod64(detail::montmul64(y, y, n, nneginv), c, n);
-                }
+                uint64_t y = rng++;
+                uint64_t m = 100;
 
-                for (uint64_t k = 0; k < r && g == 1; k += m) {
-                    ys = y;
-                    for (uint64_t i = 0; i < std::min(m, r-k); ++i) {
-                        y = detail::addmod64(detail::montmul64(y, y, n, nneginv), c, n);
-                        q = detail::montmul64(q, x < y ? y-x : x-y, n, nneginv);
+                g = q = r = 1;
+                q = mont1;
+
+                do {
+                    x = y;
+                    for (uint64_t i = 0; i < r; ++i) {
+                        y = detail::montmul64(y, y, n, nneginv) + 1;
                     }
 
-                    g = op::gcd(q, n);
-                }
+                    for (uint64_t k = 0; k < r && g == 1; k += m) {
+                        ys = y;
+                        for (uint64_t i = 0; i < std::min(m, r-k); ++i) {
+                            y = detail::montmul64(y, y, n, nneginv) + 1;
+                            q = detail::montmul64(q, x < y ? y-x : x-y, n, nneginv);
+                        }
 
-                r *= 2;
-            } while (g == 1);
+                        g = op::gcd(q, n);
+                    }
 
-            if (g == n) {
-                do {
-                    ys = detail::addmod64(detail::montmul64(ys, ys, n, nneginv), c, n);
-                    g = op::gcd(x < ys ? ys-x : x-ys, n);
+                    r *= 2;
                 } while (g == 1);
-            }
-            
+
+                if (g == n) {
+                    do {
+                        ys = detail::montmul64(ys, ys, n, nneginv) + 1;
+                        g = op::gcd(x < ys ? ys-x : x-ys, n);
+                    } while (g == 1);
+                }
+            } while (g == n);
+
             return g;
         }
     }
@@ -641,6 +641,8 @@ namespace op {
     inline std::vector<uint64_t> prime_factors(uint64_t n) {
         static std::vector<int> smallprimes;
         if (smallprimes.size() == 0) op::primes_below(1000, std::back_inserter(smallprimes));
+
+        if (n <= 1) return {1};
 
         std::vector<uint64_t> factors;
         for (uint64_t checker : smallprimes) {
@@ -658,7 +660,7 @@ namespace op {
             to_factor.pop_back();
 
             if (n == 1) continue;
-            if (op::isprime2(n)) {
+            if (op::isprime(n)) {
                 factors.push_back(n);
                 continue;
             }
