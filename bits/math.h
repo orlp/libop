@@ -702,8 +702,8 @@ namespace op {
     inline uint64_t divisor_sum(uint64_t n) {
         uint64_t sum = 1;
         for (auto factor : factorization(n)) {
-            uint64 partial = 1;
-            uint64 power = 1;
+            uint64_t partial = 1;
+            uint64_t power = 1;
             for (int i = 0; i < factor.second; ++i) {
                 power *= factor.first;
                 partial += power;
