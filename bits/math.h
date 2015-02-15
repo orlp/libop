@@ -57,6 +57,9 @@ namespace op {
     // Eulers totient function.
     uint64_t totient(uint64_t n);
 
+    // The sum of the proper divisors of n.
+    uint64_t divisor_sum(uint64_t n);
+
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
     constexpr bool safe_less(T x, U y);
@@ -693,6 +696,23 @@ namespace op {
         }
 
         return r;
+    }
+
+
+    inline uint64_t divisor_sum(uint64_t n) {
+        uint64_t sum = 1;
+        for (auto factor : factorization(n)) {
+            uint64 partial = 1;
+            uint64 power = 1;
+            for (int i = 0; i < factor.second; ++i) {
+                power *= factor.first;
+                partial += power;
+            }
+
+            sum *= partial;
+        }
+
+        return sum - n;
     }
 
 
