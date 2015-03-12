@@ -12,14 +12,14 @@
 #include <string>
 #include <vector>
 
-#include "exception.h"
-
 #ifdef _WIN32
     #include <windows.h>
     #include <wincrypt.h>
 #else
     #include <fstream>
 #endif
+
+#include "exception.h"
 
 
 namespace op {

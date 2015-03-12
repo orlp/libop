@@ -46,7 +46,7 @@ namespace op {
     // if it can't be implicitly converted.
     template<class T> struct visit_forward;
 
-    // drop-in replacement for C++14 std::integer_sequence
+    // Drop-in replacement for C++14 std::integer_sequence.
     template<class T, T... I>
     struct integer_sequence {
         using value_type = T;
@@ -70,14 +70,14 @@ namespace op {
         }
 
 
-        // C++14's integer_sequence log(n) implementation
+        // C++14's integer_sequence log(n) implementation.
         template<class, class> struct Combine;
         template<class T, T ...I, T ...J>
         struct Combine<integer_sequence<T, I...>, integer_sequence<T, J...>> {
             using type = integer_sequence<T, I..., (sizeof...(I) + J)...>;
         };
         
-        template<class T, T N, int> // default argument defined at start of file
+        template<class T, T N, int> // Default argument defined at start of file.
         struct Seq {
             static_assert(N >= 0, "N must be nonnegative in make_integer_sequence<T, N>");
             using type = typename Combine<typename Seq<T,     N/2>::type,

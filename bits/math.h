@@ -54,12 +54,6 @@ namespace op {
     // occurs in the factorization of n as the value.
     std::map<uint64_t, int> factorization(uint64_t n);    
 
-    // Eulers totient function.
-    uint64_t totient(uint64_t n);
-
-    // The sum of the proper divisors of n.
-    uint64_t divisor_sum(uint64_t n);
-
     // Returns x < y, doing it correctly even if the signedness differs between T and U.
     template<class T, class U>
     constexpr bool safe_less(T x, U y);
@@ -686,35 +680,6 @@ namespace op {
         return factors;
     }
     
-
-    inline uint64_t totient(uint64_t n) {
-        if (n == 0) return 1;
-
-        uint64_t r = 1;
-        for (auto factor : factorization(n)) {
-            r *= (factor.first - 1) * op::ipow(factor.first, factor.second - 1);
-        }
-
-        return r;
-    }
-
-
-    inline uint64_t divisor_sum(uint64_t n) {
-        uint64_t sum = 1;
-        for (auto factor : factorization(n)) {
-            uint64_t partial = 1;
-            uint64_t power = 1;
-            for (int i = 0; i < factor.second; ++i) {
-                power *= factor.first;
-                partial += power;
-            }
-
-            sum *= partial;
-        }
-
-        return sum - n;
-    }
-
 
     namespace detail {
         template<class T, class U, bool=std::is_signed<T>::value, bool=std::is_signed<U>::value>
