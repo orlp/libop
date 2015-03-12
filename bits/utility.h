@@ -36,10 +36,14 @@ namespace op {
     // step, start + 2*step, ...} as long as start + k*step < stop.
     class range;
     
+    // A helper for tuple_visit, an object of this type gets passed into the callback function to
+    // determine the default for the return type of the callback function.
+    class tuple_visit_ret;
+
     // tuple_visit(tuple, index, func) returns func(std::get<index>(tuple)). std::out_of_range is
     // thrown when the index is out of bounds of the tuple.
     template<class Func, class Tuple,
-             class Ret = decltype(std::declval<Func>()(std::get<0>(std::declval<Tuple>())))>
+             class Ret = decltype(std::declval<Func>()(std::declval<op::tuple_visit_ret>()))>
     Ret tuple_visit(Tuple&& tuple, std::size_t index, const Func& func);
 
     // visit_forward<T>()(arg) returns arg implicitly converted to T, throws a std::invalid_argument
