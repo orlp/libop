@@ -10,11 +10,8 @@ namespace op {
     // A base exception that stores a message and plays nicely with virtual inheritance.
     class BaseException : public virtual std::exception {
     public:
-        explicit BaseException(const std::string& msg)
-        : msg_storage(std::make_shared<std::string>(msg)) { }
-
-        explicit BaseException(const char* msg)
-        : msg_storage(std::make_shared<std::string>(msg)) { }
+        explicit BaseException(std::string msg)
+        : msg_storage(std::make_shared<std::string>(std::move(msg))) { }
         
         virtual const char* what() const noexcept { return msg_storage->c_str(); }
         
