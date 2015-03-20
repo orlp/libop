@@ -141,7 +141,7 @@ namespace op {
     }
 
 
-    int64_t ipow(int32_t base, uint8_t exp) {
+    inline int64_t ipow(int32_t base, uint8_t exp) {
         static const uint8_t highest_bit_set[] = {
               0,   1,   2,   2,   3,   3,   3,   3,
               4,   4,   4,   4,   4,   4,   4,   4,
