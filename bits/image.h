@@ -117,37 +117,37 @@ namespace op {
 
     template<class OutIter>
     inline void Image::write_png(OutIter& iter) {
-        // PNG magic bytes
+        // PNG magic bytes.
         auto PNG_HEADER = make_array<uint8_t>(137, 80, 78, 71, 13, 10, 26, 10);
         iter.write(reinterpret_cast<const char*>(PNG_HEADER.data()), PNG_HEADER.size());
 
-        // IHDR chunk
+        // IHDR chunk.
         std::array<uint8_t, 4 + 4 + 13 + 4> ihdr_chunk;
-        detail::store_be32(ihdr_chunk.data(), 13);                          // IHDR payload length
+        detail::store_be32(ihdr_chunk.data(), 13);                  // IHDR payload length.
         
         const std::string IHDR = "IHDR";
-        std::copy(IHDR.begin(), IHDR.end(), ihdr_chunk.data() + 4); // IHDR identifier
+        std::copy(IHDR.begin(), IHDR.end(), ihdr_chunk.data() + 4); // IHDR identifier.
 
-        detail::store_be32(ihdr_chunk.data() + 8,  width_);                 // width
-        detail::store_be32(ihdr_chunk.data() + 12, height_);                // height
+        detail::store_be32(ihdr_chunk.data() + 8,  width_);         // Width.
+        detail::store_be32(ihdr_chunk.data() + 12, height_);        // Height.
 
-        ihdr_chunk[16] = 8;                                         // bitdepth
-        ihdr_chunk[17] = 6;                                         // color type
-        ihdr_chunk[18] = 0;                                         // compression type
-        ihdr_chunk[19] = 0;                                         // filter type
-        ihdr_chunk[20] = 0;                                         // interlace method
+        ihdr_chunk[16] = 8;                                         // Bitdepth.
+        ihdr_chunk[17] = 6;                                         // Color type.
+        ihdr_chunk[18] = 0;                                         // Compression type.
+        ihdr_chunk[19] = 0;                                         // Filter type.
+        ihdr_chunk[20] = 0;                                         // Interlace method.
 
-        // calculate CRC over everything but the payload length and write to stream
+        // Calculate CRC over everything but the payload length and write to stream.
         detail::store_be32(ihdr_chunk.data() + 21, detail::crc(ihdr_chunk.data() + 4, 17));
         iter.write(reinterpret_cast<const char*>(ihdr_chunk.data()), ihdr_chunk.size());
 
-        // IDAT chunk
+        // IDAT chunk.
         std::vector<uint8_t> idat_chunk(4); // reserve 4 bytes for the chunk size
 
         const std::string IDAT = "IDAT";
         std::copy(IDAT.begin(), IDAT.end(), std::back_inserter(idat_chunk)); // IDAT identifier
 
-        // every scanline must have a filter header byte
+        // Every scanline must have a filter header byte.
         std::vector<uint8_t> scanlines;
         scanlines.reserve(4 * width_ * height_ + height_);
 
@@ -158,11 +158,11 @@ namespace op {
                       std::back_inserter(scanlines));
         }
 
-        // deflate header
+        // Deflate header.
         idat_chunk.push_back(120);
         idat_chunk.push_back(1);
 
-        // split in chunks of 65535
+        // Split in chunks of 65535.
         int num_chunks = 1 + scanlines.size() / 65535;
         for (int i = 0; i < scanlines.size(); ++i) {
             if (i % 65535 == 0) {
@@ -181,22 +181,22 @@ namespace op {
             idat_chunk.push_back(scanlines[i]);
         }
 
-        // add deflate checksum
+        // Add deflate checksum.
         idat_chunk.insert(idat_chunk.end(), 4, 0);
         detail::store_be32(idat_chunk.data() + idat_chunk.size() - 4,
                    detail::adler32(scanlines.data(), scanlines.size()));
         
-        // store payload size
+        // Store payload size.
         int payload_size = idat_chunk.size() - 8;
         detail::store_be32(idat_chunk.data(), payload_size);
 
-        // store CRC and write
+        // Store CRC and write.
         idat_chunk.insert(idat_chunk.end(), 4, 0);
         detail::store_be32(idat_chunk.data() + idat_chunk.size() - 4,
                    detail::crc(idat_chunk.data() + 4, payload_size + 4));
         iter.write(reinterpret_cast<const char*>(idat_chunk.data()), idat_chunk.size());
 
-        // IEND chunk
+        // IEND chunk.
         auto IEND_CHUNK = make_array<uint8_t>(0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130);
         iter.write(reinterpret_cast<const char*>(IEND_CHUNK.data()), IEND_CHUNK.size());
     }
