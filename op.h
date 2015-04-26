@@ -7,6 +7,7 @@
 #include "bits/intrin.h"
 #include "bits/io.h"
 #include "bits/math.h"
+#include "bits/memory.h"
 #include "bits/optional.h"
 #include "bits/random.h"
 #include "bits/string.h"
