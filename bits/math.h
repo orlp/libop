@@ -392,7 +392,7 @@ namespace op {
 
             // x = b^d (mod n)
             uint64_t x = mont1;
-            uint64_t b = op::modu128_64(base % n, 0, n);
+            uint64_t b = op::divu128_64(base % n, 0, n).second;
             uint64_t e = d;
 
             if (b == 0) return true;
@@ -465,11 +465,11 @@ namespace op {
             }
 
             // We need to divide by two, convert modular inverse of 2 to Montgomery form.
-            const uint64_t mont_div_2 = op::modu128_64((n + 1) / 2, 0, n);
+            const uint64_t mont_div_2 = op::divu128_64((n + 1) / 2, 0, n).second;
             
             // Set up primality test.
-            uint64_t D = op::modu128_64(Dc < 0 ? n + Dc : Dc, 0, n);
-            uint64_t Q = op::modu128_64(Dc > 1 ? n + (1 - Dc) / 4 : (1 - Dc) / 4, 0, n);
+            uint64_t D = op::divu128_64(Dc < 0 ? n + Dc : Dc, 0, n).second;
+            uint64_t Q = op::divu128_64(Dc > 1 ? n + (1 - Dc) / 4 : (1 - Dc) / 4, 0, n).second;
             uint64_t U = mont1;
             uint64_t V = mont1;
             uint64_t QQ = Q;
@@ -562,8 +562,8 @@ namespace op {
         if (n * 0x51b3bea3677d46cfull <= 0x0572620ae4c415c9ull) return false; // 47 
 
         // Bring out the big guns (deterministic Miller-Rabin or strong lucas probable prime check).
-        uint64_t mont1 = op::modu128_64(1, 0, n);
-        uint64_t montn1 = op::modu128_64(n-1, 0, n);
+        uint64_t mont1 = op::divu128_64(1, 0, n).second;
+        uint64_t montn1 = op::divu128_64(n-1, 0, n).second;
         uint64_t nneginv = detail::mont_modinv(n).second;
 
         if (n < 341531ull) {
@@ -603,7 +603,7 @@ namespace op {
             // between Montgomery form and regular integers. In other words, Pollard-Brent just
             // works if you change all multiplications with Montgomery multiplication!
             uint64_t nneginv = detail::mont_modinv(n).second;
-            uint64_t mont1 = op::modu128_64(1, 0, n);
+            uint64_t mont1 = op::divu128_64(1, 0, n).second;
 
             uint64_t g, r, q, x, ys;
             uint64_t rng = 42;
