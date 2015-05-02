@@ -54,21 +54,22 @@ namespace op {
     // occurs in the factorization of n as the value.
     std::map<uint64_t, int> factorization(uint64_t n);    
 
-    // Returns x < y, doing it correctly even if the signedness differs between T and U.
+    // Returns x < y, with correct results for all arithmetic types T and U, even if signedness
+    // differs, or comparing floating point numbers to integers.
     template<class T, class U>
-    constexpr bool safe_less(T x, U y);
+    constexpr bool safe_less(const T& x, const U& y);
 
-    // Returns x > y, doing it correctly even if the signedness differs between T and U.
+    // Returns x > y, analogue to safe_less.
     template<class T, class U>
-    constexpr bool safe_greater(T x, U y);
+    constexpr bool safe_greater(const T& x, const U& y);
 
-    // Returns x <= y, doing it correctly even if the signedness differs between T and U.
+    // Returns x <= y, analogue to safe_less.
     template<class T, class U>
-    constexpr bool safe_less_equal(T x, U y);
+    constexpr bool safe_less_equal(const T& x, const U& y);
 
-    // Returns x >= y, doing it correctly even if the signedness differs between T and U.
+    // Returns x >= y, analogue to safe_less.
     template<class T, class U>
-    constexpr bool safe_greater_equal(T x, U y);
+    constexpr bool safe_greater_equal(const T& x, const U& y);
 }
 
 
@@ -866,46 +867,103 @@ namespace op {
     
 
     namespace detail {
-        template<class T, class U, bool=std::is_signed<T>::value, bool=std::is_signed<U>::value>
+        template<class T, class U,
+                 bool=(std::is_arithmetic<T>::value && std::is_arithmetic<U>::value),
+                 bool=std::is_signed<T>::value, bool=std::is_signed<U>::value,
+                 bool=std::is_floating_point<T>::value, bool=std::is_floating_point<U>::value>
         struct safe_less_helper;
 
-        template<class T, class U, bool same_sign>
-        struct safe_less_helper<T, U, same_sign, same_sign> {
-            static constexpr bool eval(T x, U y) { return x < y; }
+        // One of the types not arithmetic - just use regular comparison.
+        template<class T, class U, bool a, bool b, bool c, bool d>
+        struct safe_less_helper<T, U, false, a, b, c, d> {
+            static constexpr bool eval(const T& x, const U& y) { return x < y; }
+        };
+
+        template<class T, class U, bool same_sign, bool same_is_float>
+        struct safe_less_helper<T, U, true, same_sign, same_sign, same_is_float, same_is_float> {
+            static constexpr bool eval(const T& x, const U& y) { return x < y; }
         };
 
         template<class T, class U>
-        struct safe_less_helper<T, U, true, false> {
-            static constexpr bool eval(T x, U y) {
+        struct safe_less_helper<T, U, true, true, false, false, false> {
+            static constexpr bool eval(const T& x, const U& y) {
                 return x < 0 || static_cast<typename std::make_unsigned<T>::type>(x) < y;
             }
         };
 
         template<class T, class U>
-        struct safe_less_helper<T, U, false, true> {
-            static constexpr bool eval(T x, U y) {
+        struct safe_less_helper<T, U, true, false, true, false, false> {
+            static constexpr bool eval(const T& x, const U& y) {
                 return y > 0 && x < static_cast<typename std::make_unsigned<U>::type>(y);
+            }
+        };
+
+        template<class T, class U, bool a, bool b>
+        struct safe_less_helper<T, U, true, a, b, true, false> {
+            static constexpr bool eval(const T& x, const U& y) {
+                return
+                    // This should never give a false positive. A false positive occurs when the
+                    // real value of y >= x, but this comparison returns true. If y > x then an
+                    // adjacent floating point number representation could be x, but not a number
+                    // smaller than x.  If y == x the conversion would be exact.
+                    x < T(y) ?                                            
+                        true : (
+                    // Similar story here, a false positive is impossible.
+                    x > T(y) ?
+                        false : (
+                    // We can safely convert to int.
+                    T(std::numeric_limits<U>::min()) < x && x < T(std::numeric_limits<U>::max()) ?
+                        U(x) < y : (
+                    // NaN comparison is always false.
+                    std::isnan(x) ?
+                        false : 
+                    // Now it's tricky. The floating point value could be slightly under or slightly
+                    // above std::numerical_limits<U>::max or min. After division by the radix it
+                    // should be safe to exactly compare as integers.
+                        is_less_div_radix<std::numeric_limits<T>::radix>(x, y))));
+            }
+
+            template<int r>
+            static constexpr bool is_less_div_radix(const T& x, const U& y) {
+                return U(x/r) < y/r || U(x/r) == y/r && U((x/r-U(x/r))*r) < y%r;
+            }
+        };
+
+        template<class T, class U, bool a, bool b>
+        struct safe_less_helper<T, U, true, a, b, false, true> {
+            static constexpr bool eval(const T& x, const U& y) {
+                return
+                    U(x) < y ?                                            
+                        true : (
+                    U(x) > y ?
+                        false : (
+                    U(std::numeric_limits<T>::min()) < y && y < U(std::numeric_limits<T>::max()) ?
+                        x < T(y) : (
+                    std::isnan(y) ?
+                        false : 
+                        is_less_div_radix<std::numeric_limits<U>::radix>(x, y))));
+            }
+
+            template<int r>
+            static constexpr bool is_less_div_radix(const T& x, const U& y) {
+                return x/r < T(y/r) || x/r == T(y/r) && x%r < T((y/r-T(y/r))*r);
             }
         };
     }
 
     template<class T, class U>
-    inline constexpr bool safe_less(T x, U y) {
-        // TODO: allow float-integer comparison
-        static_assert(std::is_integral<T>::value == std::is_integral<U>::value,
-                      "op::safe_less only works if both types are integer or float");
-
+    inline constexpr bool safe_less(const T& x, const U& y) {
         return detail::safe_less_helper<T, U>::eval(x, y);
     }
 
     template<class T, class U>
-    inline constexpr bool safe_greater(T x, U y) { return safe_less(y, x); }
+    inline constexpr bool safe_greater(const T& x, const U& y) { return safe_less(y, x); }
 
     template<class T, class U>
-    inline constexpr bool safe_less_equal(T x, U y) { return !safe_less(y, x); }
+    inline constexpr bool safe_less_equal(const T& x, const U& y) { return !safe_less(y, x); }
 
     template<class T, class U>
-    inline constexpr bool safe_greater_equal(T x, U y) { return !safe_less(x, y); }
+    inline constexpr bool safe_greater_equal(const T& x, const U& y) { return !safe_less(x, y); }
 }
 
 #endif
