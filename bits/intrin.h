@@ -14,8 +14,8 @@
 
 namespace op {
     // Counts number of leading zeros of n. Undefined behaviour if n is zero.
-    int clz(uint64_t n);
-    int clz(uint32_t n);
+    int clz(uint64_t n); // OP_HAS_FAST_CLZ64 is defined if hardware-accelerated.
+    int clz(uint32_t n); // OP_HAS_FAST_CLZ32 is defined if hardware-accelerated.
 
     // Multiplies two unsigned 64 bit numbers. Returns a pair of 64 bit numbers containing the
     // result (high, low).
@@ -35,8 +35,10 @@ namespace op {
 namespace op {
     inline int clz(uint64_t n) {
         #if defined(__GNUC__) || OP_HAS_BUILTIN(__builtin_clzll)
+            #define OP_HAS_FAST_CLZ64
             return __builtin_clzll(n);
         #elif defined(_MSC_VER) && defined(_M_X64)
+            #define OP_HAS_FAST_CLZ64
             unsigned long result;
             if (_BitScanReverse64(&result, val)) return 63 - result;
             return 64;
@@ -57,8 +59,10 @@ namespace op {
 
     inline int clz(uint32_t n) {
         #if defined(__GNUC__) || OP_HAS_BUILTIN(__builtin_clzl)
+            #define OP_HAS_FAST_CLZ32
             return __builtin_clzl(n);
         #elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+            #define OP_HAS_FAST_CLZ32
             unsigned long result;
             _BitScanReverse(&result, val);
             return 31 - result;

@@ -619,6 +619,8 @@ namespace op {
                 do {
                     x = y;
                     for (uint64_t i = 0; i < r; ++i) {
+                        // Checking for a potential overflow here is slower than to just waste a
+                        // trial when it overflows.
                         y = detail::montmul64(y, y, n, nneginv) + 1;
                     }
 
