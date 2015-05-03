@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+#include "config.h"
+
 /*
    A base exception that stores a message and plays nicely with virtual inheritance.
 
@@ -27,7 +29,7 @@ namespace op {
         explicit BaseException(std::string msg)
         : msg_storage(std::make_shared<std::string>(std::move(msg))) { }
         
-        virtual const char* what() const noexcept { return msg_storage->c_str(); }
+        virtual const char* what() const OP_NOEXCEPT { return msg_storage->c_str(); }
 
     protected:
         BaseException();

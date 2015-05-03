@@ -19,6 +19,7 @@
     #include <fstream>
 #endif
 
+#include "config.h"
 #include "exception.h"
 
 
@@ -77,9 +78,9 @@ namespace op {
 
         result_type operator()();
 
-        double entropy() const noexcept { return 8 * sizeof(result_type); }
-        static constexpr result_type min() noexcept { return std::numeric_limits<result_type>::min(); }
-        static constexpr result_type max() noexcept { return std::numeric_limits<result_type>::max(); }
+        double entropy() const OP_NOEXCEPT { return 8 * sizeof(result_type); }
+        static constexpr result_type min() OP_NOEXCEPT { return std::numeric_limits<result_type>::min(); }
+        static constexpr result_type max() OP_NOEXCEPT { return std::numeric_limits<result_type>::max(); }
 
     private:
         std::string token;

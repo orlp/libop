@@ -1,6 +1,8 @@
 #ifndef OP_OP_H
 #define OP_OP_H
 
+#include "bits/config.h"
+
 #include "bits/endian.h"
 #include "bits/exception.h"
 #include "bits/image.h"
