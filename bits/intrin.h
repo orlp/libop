@@ -38,7 +38,7 @@ namespace op {
             return __builtin_clzll(n);
         #elif defined(_MSC_VER) && defined(_M_X64)
             unsigned long result;
-            if (_BitScanReverse64(&result, val)) return 63 - result;
+            if (_BitScanReverse64(&result, n)) return 63 - result;
             return 64;
         #else
             uint32_t t;
@@ -60,7 +60,7 @@ namespace op {
             return __builtin_clzl(n);
         #elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
             unsigned long result;
-            _BitScanReverse(&result, val);
+            _BitScanReverse(&result, n);
             return 31 - result;
         #else
             uint32_t t;
