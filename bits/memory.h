@@ -5,8 +5,6 @@
 #include <cassert>
 #include <new>
 
-#include "config.h"
-
 
 namespace op {
     /*
@@ -84,16 +82,16 @@ namespace op {
         // arena_alloc type.
         class arena_base {
         public:
-            arena_base(char* storage_begin, char* storage_end) OP_NOEXCEPT
+            arena_base(char* storage_begin, char* storage_end) noexcept
             : storage_begin(storage_begin), storage_end(storage_end)
             , cursor(storage_begin), freelist(uint32_t(-1)) { }
 
-            ~arena_base() OP_NOEXCEPT { cursor = nullptr; }
+            ~arena_base() noexcept { cursor = nullptr; }
             arena_base(const arena_base&) = delete;
             arena_base& operator=(const arena_base&) = delete;
 
-            std::size_t used() const OP_NOEXCEPT { return cursor - storage_begin; }
-            void reset() OP_NOEXCEPT { cursor = storage_begin; }
+            std::size_t used() const noexcept { return cursor - storage_begin; }
+            void reset() noexcept { cursor = storage_begin; }
 
             void* allocate(std::size_t n) {
                 assert(cursor != nullptr && "arena_alloc outlived arena");
@@ -183,7 +181,7 @@ namespace op {
                 }
             }
 
-            bool is_in_arena(void* p_) const OP_NOEXCEPT {
+            bool is_in_arena(void* p_) const noexcept {
                 char* p = static_cast<char*>(p_);
                 return storage_begin <= p && p < storage_end;
             }
@@ -219,7 +217,7 @@ namespace op {
                 return static_cast<T*>(::operator new(n*sizeof(T)));
             }
 
-            void fallback_deallocate(T* p, std::size_t n) OP_NOEXCEPT {
+            void fallback_deallocate(T* p, std::size_t n) noexcept {
                 ::operator delete(p);
             }
         };
@@ -231,7 +229,7 @@ namespace op {
                 throw std::bad_alloc();
             }
 
-            void fallback_deallocate(T* p, std::size_t n) OP_NOEXCEPT {
+            void fallback_deallocate(T* p, std::size_t n) noexcept {
                 assert(false && "arena_alloc deallocate called with pointer not from arena");
             }
         };
@@ -240,8 +238,8 @@ namespace op {
     template<std::size_t N, class T>
     struct arena : detail::arena_base {
         static_assert(N * sizeof(T) < (1ull << 32) - 8, "arena can only handle up to 2^32-8 bytes");
-        arena() OP_NOEXCEPT : detail::arena_base(storage, storage + N) { }
-        static constexpr std::size_t size() OP_NOEXCEPT { return N; }
+        arena() noexcept : detail::arena_base(storage, storage + N) { }
+        static constexpr std::size_t size() noexcept { return N; }
         alignas(alignment) char storage[align(N * sizeof(T))];
     };
 
@@ -254,7 +252,7 @@ namespace op {
 
         arena_alloc(detail::arena_base& a) : a(a) { }
         template<class U, bool Un>
-        arena_alloc(const arena_alloc<U, Un>& alloc) OP_NOEXCEPT : a(alloc.a) { }
+        arena_alloc(const arena_alloc<U, Un>& alloc) noexcept : a(alloc.a) { }
         arena_alloc(const arena_alloc&) = default;
         arena_alloc& operator=(const arena_alloc&) = delete;
 
@@ -264,25 +262,25 @@ namespace op {
             return this->fallback_allocate(n);
         }
 
-        void deallocate(T* p, std::size_t n) OP_NOEXCEPT {
+        void deallocate(T* p, std::size_t n) noexcept {
             if (a.is_in_arena(p)) a.deallocate(p, n*sizeof(T));
             else this->fallback_deallocate(p, n);
         }
 
         template<class T_, bool Tn, class U, bool Un>
-        friend bool operator==(const arena_alloc<T_, Tn>& x, const arena_alloc<U, Un>& y) OP_NOEXCEPT;
+        friend bool operator==(const arena_alloc<T_, Tn>& x, const arena_alloc<U, Un>& y) noexcept;
 
     private:
         detail::arena_base& a;
     };
 
     template<class T, bool Tn, class U, bool Un>
-    inline bool operator==(const arena_alloc<T, Tn>& x, const arena_alloc<U, Un>& y) OP_NOEXCEPT {
+    inline bool operator==(const arena_alloc<T, Tn>& x, const arena_alloc<U, Un>& y) noexcept {
         return &x.a == &y.a;
     }
 
     template<class T, bool Tn, class U, bool Un>
-    inline bool operator!=(const arena_alloc<T, Tn>& x, const arena_alloc<U, Un>& y) OP_NOEXCEPT {
+    inline bool operator!=(const arena_alloc<T, Tn>& x, const arena_alloc<U, Un>& y) noexcept {
         return !(x == y);
     }
 }
