@@ -130,7 +130,7 @@ namespace op {
             b %= m;
 
             // No overflow possible.
-            if (a == 0) return b;
+            if (a == 0) return 0;
             if (b <= std::numeric_limits<uint64_t>::max() / a) return (a*b) % m;
 
             uint64_t res = 0;
