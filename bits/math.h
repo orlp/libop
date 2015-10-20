@@ -835,7 +835,7 @@ namespace op {
                 n *= std::get<1>(checker);
             }
 
-            if (std::get<0>(checker) > n) break;
+            if (uint64_t(std::get<0>(checker)) > n) break;
         }
 
         std::vector<uint64_t> to_factor = {n};

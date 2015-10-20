@@ -30,7 +30,7 @@ namespace op {
 
     // to_array(c_array) is a helper function to create a std::array from a C array.
     template<class T, std::size_t N>
-    constexpr std::array<T, N> to_array(T (&a)[N]);
+    constexpr std::array<T, N> to_array(T const (&a)[N]);
 
     // range(start, stop, step=1) returns an iterable object that iterates over {start, start +
     // step, start + 2*step, ...} as long as start + k*step < stop.
@@ -122,7 +122,7 @@ namespace op {
 
 
     template<class T, std::size_t N>
-    inline constexpr std::array<T, N> to_array(T (&a)[N]) {
+    inline constexpr std::array<T, N> to_array(T const (&a)[N]) {
         return detail::array_unpacker(a, op::make_index_sequence<N>());
     }
 

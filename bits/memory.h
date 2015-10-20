@@ -196,10 +196,10 @@ namespace op {
                 return reinterpret_cast<Block*>(storage_begin + block_offset);
             }
 
-            uint32_t freelist;
             char* storage_begin;
             char* storage_end;
             char* cursor;
+            uint32_t freelist;
 
         protected:
             static constexpr std::size_t alignment =
