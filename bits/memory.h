@@ -44,23 +44,23 @@ namespace op {
         Example usage:
 
             // First 1024 bytes of memory usage by j will be served by arena:
-            std::arena<1024> arena;
+            op::arena<1024> arena;
             std::basic_string<char, arena_alloc<int>> v{arena}; 
 
             // Beware reallocation and alignment issues. Use reserve immediately if you want to
             // store a particular amount of elements in a container:
-            std::arena<64, double> arena;
+            op::arena<64, double> arena;
             std::vector<int, arena_alloc<int>> v{arena}; 
             v.reserve(arena.size());
 
             // You can reuse the same arena for multiple allocators:
-            std::arena<1024 * 8> arena; // 8 kilobytes of working memory 
+            op::arena<1024 * 8> arena; // 8 kilobytes of working memory 
             std::stack<int, arena_alloc<int>> s{arena};
             std::map<int, double, arena_alloc<std::pair<const int, double>>> m{arena};
 
             // And for memory constrained environments you can disallow dynamic memory allocation
             // entirely (resulting in std::bad_alloc if the arena runs out of free space):
-            std::arena<1024> arena;
+            op::arena<1024> arena;
             std::set<double, arena_alloc<double, false>> s;
     */
     template<class T, bool new_fallback=true>

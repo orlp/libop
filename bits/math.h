@@ -10,6 +10,7 @@
 #include <map>
 
 #include "intrin.h"
+#include "type_traits.h"
 
 
 namespace op {
@@ -30,6 +31,10 @@ namespace op {
     // Returns the integer part of the square root of integer x.
     template<class T>
     uint32_t isqrt(T x);
+
+    // Hypothenuse in N dimensions.
+    template<class... T>
+    constexpr op::common_ftype_t<T...> hypot(T... args);
 
     // Returns the greatest common divisor of a and b.
     template<class T, class U>
@@ -236,6 +241,36 @@ namespace op {
         return g0;
     }
 
+    namespace detail {
+        template<class T>
+        inline constexpr T hypot_impl_var(T s, T t) { return t * std::sqrt(s); }
+
+        template<class T, class... A>
+        inline constexpr T hypot_impl_var(T s, T t, T x, A... args) {
+            return t < x  ? hypot_impl_var(T(1) + s * ((t/x)*(t/x)), x, args...) :
+                   t != 0 ? hypot_impl_var(s + (x/t)*(x/t), t, args...) :
+                            hypot_impl_var(s, t, args...);
+        }
+
+        template<class T>
+        inline constexpr T hypot_impl(T x, T y) {
+            return x < y  ? x * std::sqrt(T(1) + (x/y)*(x/y)) :
+                   x != 0 ? x * std::sqrt(T(1) + (y/x)*(y/x)) :
+                            0;
+        }
+
+        template<class T, class... A>
+        inline constexpr T hypot_impl(T x, T y, A... args) {
+            return x < y  ? hypot_impl_var(T(1) + (x/y)*(x/y), y, args...) :
+                   x != 0 ? hypot_impl_var(T(1) + (y/x)*(y/x), x, args...) :
+                            hypot_impl_var(T(1), T(0), args...);
+        }
+    }
+
+    template<class... T>
+    inline constexpr op::common_ftype_t<T...> hypot(T... args) {
+        return detail::hypot_impl(std::fabs(op::common_ftype_t<T...>(args))...);
+    }
     
     template<class T, class U>
     inline uint64_t gcd(T a_, U b_) {

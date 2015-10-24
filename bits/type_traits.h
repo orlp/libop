@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <cmath>
 
 
 namespace op {
@@ -13,6 +14,14 @@ namespace op {
     // Same as is_swappable, with the added condition that the swap must be noexcept.
     template<class T, class U = T>
     struct is_nothrow_swappable;
+
+    // Common floating point type. Turns Integral into double, rejects non-arithmetic types and 
+    // then takes the common type.
+    template<class... T>
+    struct common_ftype;
+
+    template<class... T>
+    using common_ftype_t = typename common_ftype<T...>::type;
 }
 
 
@@ -52,6 +61,19 @@ namespace op {
             template<class T, class U>
             struct is_adl_swap_noexcept : std::integral_constant<bool, noexcept(can_swap<T, U>(0))> { };
         }
+
+        template<class T, class = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+        struct common_ftype_helper {
+            typedef T type;
+        };
+        
+        template<class T>
+        struct common_ftype_helper<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+            typedef double type;
+        };
+
+        template<class T>
+        using common_ftype_helper_t = typename common_ftype_helper<T>::type;
     }
 
     template<class T, class U>
@@ -78,6 +100,12 @@ namespace op {
                 detail::swap_adl_tests::is_adl_swap_noexcept<T, U>::value)
         )
     > {};
+
+
+    template<class... T>
+    struct common_ftype {
+        typedef typename std::common_type<detail::common_ftype_helper_t<T>...>::type type;
+    };
 }
 
 #endif
