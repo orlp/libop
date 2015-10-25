@@ -1,6 +1,7 @@
 #ifndef OP_MEMORY_H
 #define OP_MEMORY_H
 
+#include <cassert>
 #include <cstddef>
 #include <map>
 #include <new>
