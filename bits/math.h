@@ -34,7 +34,7 @@ namespace op {
 
     // Hypothenuse in N dimensions.
     template<class... T>
-    constexpr op::common_ftype_t<T...> hypot(T... args);
+    constexpr op::common_floating_point_type_t<T...> hypot(T... args);
 
     // Returns the greatest common divisor of a and b.
     template<class T, class U>
@@ -268,8 +268,8 @@ namespace op {
     }
 
     template<class... T>
-    inline constexpr op::common_ftype_t<T...> hypot(T... args) {
-        return detail::hypot_impl(std::fabs(op::common_ftype_t<T...>(args))...);
+    inline constexpr op::common_floating_point_type_t<T...> hypot(T... args) {
+        return detail::hypot_impl(std::fabs(op::common_floating_point_type_t<T...>(args))...);
     }
     
     template<class T, class U>

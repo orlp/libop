@@ -120,11 +120,11 @@ namespace op {
 namespace op {
     inline void print() { std::cout << "\n"; }
 
+
     template<class T1, class ...T2>
     inline void print(const T1& arg, const T2&... args) {
         std::cout << arg;
-        int dummy[] { 0, (std::cout << " " << args, 0)... };
-        (void) dummy; 
+        OP_SWALLOW_PARAM_PACK(std::cout << " " << args);
         std::cout << "\n";
     }
 

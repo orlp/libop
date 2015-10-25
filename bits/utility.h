@@ -16,8 +16,13 @@
 namespace op {
     // Needed for declarations below.
     namespace detail {
+        using swallow_param_pack_t = int[];
         template<class T, T N, int = (N == 0 || N == 1) ? N : 2> struct Seq;
     }
+
+    // Expands and consumes parameter packs in left-to-right order.
+    #define OP_SWALLOW_PARAM_PACK(...) \
+        void(op::detail::swallow_param_pack_t{0, ((__VA_ARGS__), void(), 0)...})
 
     // make_array(...) is a helper function to create a std::array with a derived type and size.
     template<class... Types>

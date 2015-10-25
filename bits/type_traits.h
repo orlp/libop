@@ -18,10 +18,17 @@ namespace op {
     // Common floating point type. Turns Integral into double, rejects non-arithmetic types and 
     // then takes the common type.
     template<class... T>
-    struct common_ftype;
+    struct common_floating_point_type;
 
     template<class... T>
-    using common_ftype_t = typename common_ftype<T...>::type;
+    using common_floating_point_type_t = typename common_floating_point_type<T...>::type;
+
+    // Checks if T is the same as one of Us.
+    template<class T, class... Us>
+    struct is_one_of;
+
+    // Checks if all types in Ts are the same.
+    template<class... Ts> struct is_all_same;
 }
 
 
@@ -101,11 +108,24 @@ namespace op {
         )
     > {};
 
-
     template<class... T>
-    struct common_ftype {
+    struct common_floating_point_type {
         typedef typename std::common_type<detail::common_ftype_helper_t<T>...>::type type;
     };
+
+    template<class T, class... Us>
+    struct is_one_of : std::false_type {};
+
+    template<class T, class U, class... Us>
+    struct is_one_of<T, U, Us...> :
+        std::integral_constant<bool, std::is_same<T, U>{} || is_one_of<T, Us...>{}> {};
+    
+    template<class... Ts> struct is_all_same : std::false_type {};
+    template<> struct is_all_same<> : std::true_type {};
+    template<class T> struct is_all_same<T> : std::true_type {};
+    template<class T, class U, class... Us>
+    struct is_all_same<T, U, Us...>
+        : std::integral_constant<bool, std::is_same<T, U>{} && is_all_same<U, Us...>{}> {};
 }
 
 #endif
