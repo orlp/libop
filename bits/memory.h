@@ -2,8 +2,13 @@
 #define OP_MEMORY_H
 
 #include <cstddef>
-#include <cassert>
+#include <map>
 #include <new>
+#include <set>
+#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 
 namespace op {

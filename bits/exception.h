@@ -1,6 +1,7 @@
 #ifndef OP_EXCEPTION_H
 #define OP_EXCEPTION_H
 
+#include <algorithm>
 #include <exception>
 #include <memory>
 #include <string>

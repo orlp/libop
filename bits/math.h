@@ -1,13 +1,18 @@
 #ifndef OP_MATH_H
 #define OP_MATH_H
 
+#include <algorithm>
+#include <array>
 #include <cmath>
-#include <cstdint>
-#include <limits>
-#include <type_traits>
-#include <set>
 #include <iterator>
+#include <limits>
 #include <map>
+#include <set>
+#include <stdexcept>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "intrin.h"
 #include "type_traits.h"

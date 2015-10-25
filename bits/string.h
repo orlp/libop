@@ -3,11 +3,14 @@
 
 #include <cctype>
 #include <cstddef>
+#include <memory>
 #include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
+#include <type_traits>
 
+#include "type_traits.h"
 
 
 namespace op {

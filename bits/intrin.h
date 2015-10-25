@@ -1,6 +1,9 @@
 #ifndef OP_INTRIN_H
 #define OP_INTRIN_H
 
+#include <limits>
+#include <utility>
+
 #ifdef _MSC_VER
     #include <intrin.h>
 #endif
