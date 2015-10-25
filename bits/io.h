@@ -14,119 +14,128 @@
 
 #include "utility.h"
 
+/*
+    Formatting mini-language specification
+    --------------------------------------
+
+    Most below formatting functions take a format string and an arbitrary amount of arguments.
+    The format string gets streamed character by character into the output stream, until a
+    replacement field is encountered. A replacement field is enclosed by curly braces. This
+    means you'll have to escape literal curly braces by doubling them: {{ and }}.
+
+    Formatting is stateless and totally independent of the current options/flags of the output
+    stream. All options/flags of the stream are saved before formatting takes place and are
+    restored to their original values when done. Neither side can affect the other.
+
+    When a replacement field is encountered it gets parsed using the following grammar:
+
+        replacement_field ::= "{" [index] [":" format_spec] "}"
+        index             ::= <integer>
+        format_spec       ::= [fill][align][width]["." precision][flag]*
+        fill              ::= "'" <any character>
+        align             ::= "<" | ">" | "^"
+        width             ::= <integer> | "*" <integer>
+        precision         ::= <integer> | "*" <integer>
+        flag              ::= "b" | "e" | "f" | "o" | "p" | "t" | "u" | "x" | "+"
+
+    Every replacement field takes an argument and streams it into the output stream using the
+    requested options/flags. If no options are specified it will use the default options of
+    std::ostream. Options/flags do not carry over between replacement fields.
+
+    First the index of the argument is determined. You can specify this explicitly, for example
+    "{0}" to select the first argument, or omit it and it will automatically be derived as one
+    plus the last used index (0 for the first use). So the following two format strings are
+    identical:
+
+        "{0} {1} {0} {1}"
+                  ^ You can re-use arguments for multiple replacement fields.
+
+        "{} {} {0} {}"
+
+    Then comes an optional format spec, starting with a colon (:).
+    
+    If a fill is specified (starting with an apostrophe (') followed by the fill character) it
+    will be passed to out.fill(fill_char). The default fill is a space character.
+
+    If an align is specified the following manipulator will be streamed into the output stream:
+
+        < = std::left (this is the default)
+        ^ = std::internal
+        > = std::right
+
+    Then it's possible to specify a width as an integer, passed to out.width(width). However, if
+    the width parameter starts with an asterisk (*) the actual width is derived differently. You
+    can specify an index immediately after the asterisk, where the formatting function will look
+    for the width as an integer in the passed arguments. If the index is omitted it will
+    automatically be derived as one plus the last used index. Note that the index for width
+    counts as "the last used index" for future indexing operations. For example the three
+    following format calls are all identical:
+
+        format("{0:'_10} {1}\n", 12345, 42)
+        format("{0:'_*1} {2}\n", 12345, 10, 42)
+        format("{:'_*} {}\n",    12345, 10, 42)
+
+        All result in "_____12345".
+    
+    If the width starts with a 0 and there is no other fill character specified, the fill character
+    will be set to '0'. After the width the precision is parsed in similar fashion. The precision
+    always starts with a period (.) and gets passed to out.precision(precision). The default
+    precision is 6.
+
+    Finally you can specify zero or more flags. Each flag will result in a manipulator being
+    streamed into the output stream before the argument. The meaning of the flag codes is as
+    following:
+
+        t -> std::boolalpha
+        f -> std::fixed
+        x -> std::hex
+        o -> std::oct
+        e -> std::scientific
+        b -> std::showbase
+        p -> std::showpoint
+        + -> std::showpos
+        u -> std::uppercase
+*/
+
 
 namespace op {
     // Acts like std::cout << arg1 << " " << arg2 << " " << ... << " " << argn << "\n";.
-    template<class ...T> void print(const T&... args);
-
-    /*
-        Formatting mini-language specification
-        --------------------------------------
-
-        All below formatting functions take a format string and an arbitrary amount of arguments.
-        The format string gets streamed character by character into the output stream, until a
-        replacement field is encountered. A replacement field is enclosed by curly braces. This
-        means you'll have to escape literal curly braces by doubling them: {{ and }}.
-
-        Formatting is stateless and totally independent of the current options/flags of the output
-        stream. All options/flags of the stream are saved before formatting takes place and are
-        restored to their original values when done. Neither side can affect the other.
-
-        When a replacement field is encountered it gets parsed using the following grammar:
-
-            replacement_field ::= "{" [index] [":" format_spec] "}"
-            index             ::= <integer>
-            format_spec       ::= [fill][align][width]["." precision][flag]*
-            fill              ::= "'" <any character>
-            align             ::= "<" | ">" | "^"
-            width             ::= <integer> | "*" <integer>
-            precision         ::= <integer> | "*" <integer>
-            flag              ::= "b" | "e" | "f" | "o" | "p" | "t" | "u" | "x" | "+"
-
-        Every replacement field takes an argument and streams it into the output stream using the
-        requested options/flags. If no options are specified it will use the default options of
-        std::ostream. Options/flags do not carry over between replacement fields.
-
-        First the index of the argument is determined. You can specify this explicitly, for example
-        "{0}" to select the first argument, or omit it and it will automatically be derived as one
-        plus the last used index (0 for the first use). So the following two format strings are
-        identical:
-
-            "{0} {1} {0} {1}"
-                      ^ You can re-use arguments for multiple replacement fields.
-
-            "{} {} {0} {}"
-
-        Then comes an optional format spec, starting with a colon (:).
-        
-        If a fill is specified (starting with an apostrophe (') followed by the fill character) it
-        will be passed to out.fill(fill_char). The default fill is a space character.
-
-        If an align is specified the following manipulator will be streamed into the output stream:
-
-            < = std::left (this is the default)
-            ^ = std::internal
-            > = std::right
-
-        Then it's possible to specify a width as an integer, passed to out.width(width). However, if
-        the width parameter starts with an asterisk (*) the actual width is derived differently. You
-        can specify an index immediately after the asterisk, where the formatting function will look
-        for the width as an integer in the passed arguments. If the index is omitted it will
-        automatically be derived as one plus the last used index. Note that the index for width
-        counts as "the last used index" for future indexing operations. For example the three
-        following format calls are all identical:
-
-            format("{0:'_10} {1}\n", 12345, 42)
-            format("{0:'_*1} {2}\n", 12345, 10, 42)
-            format("{:'_*} {}\n",    12345, 10, 42)
-
-            All result in "_____12345".
-        
-        After the width the precision is parsed in similar fashion. The precision always starts with
-        a period (.) and gets passed to out.precision(precision). The default precision is 6.
-
-        Finally you can specify zero or more flags. Each flag will result in a manipulator being
-        streamed into the output stream before the argument. The meaning of the flag codes is as
-        following:
-
-            t -> std::boolalpha
-            f -> std::fixed
-            x -> std::hex
-            o -> std::oct
-            e -> std::scientific
-            b -> std::showbase
-            p -> std::showpoint
-            + -> std::showpos
-            u -> std::uppercase
-    */
+    template<class... Args> void print(Args&&... args);
+    
+    // Acts like out << arg1 << " " << arg2 << " " << ... << " " << argn << "\n";.
+    template<class Char, class Trait, class... Args>
+    void fprint(std::basic_ostream<Char, Trait>& out, Args&&... args);
 
     // Uses the above formatting language to format args using format string str into out.
-    template<class Char, class Trait, class ...Args>
-    void fformat(std::basic_ostream<Char, Trait>& out, const Char* str, const Args&... arguments);
+    template<class Char, class Trait, class... Args>
+    void fprintf(std::basic_ostream<Char, Trait>& out, const Char* str, Args&&... args);
 
-    // Uses fformat on a std::basic_ostringstream<Char, Trait, Alloc> and returns the result.
+    // Uses fprintf on std::cout.
+    template<class... Args>
+    void printf(const char* str, Args&&... args);
+    
+    // Uses fprintf on a std::basic_ostringstream<Char, Trait, Alloc> and returns the result.
     template<class Char, class Trait = std::char_traits<Char>, class Alloc = std::allocator<Char>,
-             class ...Args>
-    std::basic_string<Char, Trait, Alloc> format(const Char* str, const Args&... arguments);
-
-    // Uses fformat on std::cout.
-    template<class ...Args>
-    void fprint(const char* str, const Args&... arguments);
+             class... Args>
+    std::basic_string<Char, Trait, Alloc> format(const Char* str, Args&&... args);
 }
 
 
 
 // Implementation
 namespace op {
-    inline void print() { std::cout << "\n"; }
-
-
-    template<class T1, class ...T2>
-    inline void print(const T1& arg, const T2&... args) {
-        std::cout << arg;
-        OP_SWALLOW_PARAM_PACK(std::cout << " " << args);
-        std::cout << "\n";
+    template<class Char, class Trait>
+    inline void fprint(std::basic_ostream<Char, Trait>& out) { out << out.widen('\n'); }
+    
+    template<class Char, class Trait, class Arg, class... Args>
+    inline void fprint(std::basic_ostream<Char, Trait>& out, Arg&& arg, Args&&... args) {
+        out << std::forward<Arg>(arg);
+        OP_SWALLOW_PARAM_PACK(out << out.widen(' ') << std::forward<Args>(args));
+        out << out.widen('\n');
     }
+    
+    template<class... Args>
+    inline void print(Args&&... args) { op::fprint(std::cout, std::forward<Args>(args)...); }
 
 
     namespace detail {
@@ -206,15 +215,15 @@ namespace op {
     }
 
 
-    template<class Char, class Trait, class ...Args>
-    inline void fformat(std::basic_ostream<Char, Trait>& out, const Char* str, const Args&... args) {
+    template<class Char, class Trait, class... Args>
+    inline void fprintf(std::basic_ostream<Char, Trait>& out, const Char* str, Args&&... args) {
         // Re-use widen.
         const Char zero = out.widen('0');
         const Char open_bracket = out.widen('{');
         const Char close_bracket = out.widen('}');
         
         // Put arguments in tuple for easy extraction.
-        auto args_tuple = std::tie(args...);
+        const auto& args_tuple = std::make_tuple(std::forward<Args>(args)...);
         
         // Save original stream state.
         detail::StreamState<Char, Trait> original_state(out);
@@ -252,9 +261,11 @@ namespace op {
                 ++str;
 
                 // Check for fill.
+                bool fill_specified = false;
                 if (Trait::eq(*str, out.widen('\'')) && *(str + 1)) {
                     ++str;
                     fmt_params.fill = *str++;
+                    fill_specified = true;
                 }
 
                 // Check for align.
@@ -280,6 +291,7 @@ namespace op {
                     fmt_params.width = op::tuple_visit(args_tuple, width_index,
                                                        op::visit_forward<std::streamsize>());
                 } else {
+                    if (!fill_specified && Trait::eq(*str, zero)) fmt_params.fill = *str++;
                     detail::parse_integer(fmt_params.width, str, zero);
                 }
 
@@ -336,17 +348,17 @@ namespace op {
     }
 
 
-    template<class Char, class Trait, class Alloc, class ...Args>
-    inline std::basic_string<Char, Trait, Alloc> format(const Char* str, const Args&... args) {
+    template<class Char, class Trait, class Alloc, class... Args>
+    inline std::basic_string<Char, Trait, Alloc> format(const Char* str, Args&&... args) {
         std::basic_ostringstream<Char, Trait, Alloc> stream;
-        op::fformat(stream, str, args...);
+        op::fprintf(stream, str, std::forward<Args>(args)...);
         return stream.str();
     }
 
 
-    template<class ...Args>
-    inline void fprint(const char* str, const Args&... args) {
-        op::fformat(std::cout, str, args...);
+    template<class... Args>
+    inline void printf(const char* str, Args&&... args) {
+        op::fprintf(std::cout, str, std::forward<Args>(args)...);
     }
 }
 
