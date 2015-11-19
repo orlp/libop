@@ -691,7 +691,7 @@ namespace op {
 
 
     inline std::vector<uint64_t> prime_factors(uint64_t n) {
-        static const std::array<std::tuple<int, uint64_t, uint64_t>, 167> smallprimes {
+        static const std::array<std::tuple<int, uint64_t, uint64_t>, 167> smallprimes {{
             std::make_tuple(  3, 0xaaaaaaaaaaaaaaabull, 0x5555555555555555ull),
             std::make_tuple(  5, 0xcccccccccccccccdull, 0x3333333333333333ull),
             std::make_tuple(  7, 0x6db6db6db6db6db7ull, 0x2492492492492492ull),
@@ -859,7 +859,7 @@ namespace op {
             std::make_tuple(983, 0x816eae7c7bf69fe7ull, 0x0042ab5c73a13458ull),
             std::make_tuple(991, 0xb6a2bea4cfb1781full, 0x004221950db0f3dbull),
             std::make_tuple(997, 0xa3900c53318e81edull, 0x0041bbb2f80a4553ull),
-        };
+        }};
 
         if (n <= 1) return {1};
 
@@ -967,7 +967,7 @@ namespace op {
 
             template<int r>
             static constexpr bool is_less_div_radix(const T& x, const U& y) {
-                return U(x/r) < y/r || U(x/r) == y/r && U((x/r-U(x/r))*r) < y%r;
+                return U(x/r) < y/r || (U(x/r) == y/r && U((x/r-U(x/r))*r) < y%r);
             }
         };
 
@@ -988,7 +988,7 @@ namespace op {
 
             template<int r>
             static constexpr bool is_less_div_radix(const T& x, const U& y) {
-                return x/r < T(y/r) || x/r == T(y/r) && x%r < T((y/r-T(y/r))*r);
+                return x/r < T(y/r) || (x/r == T(y/r) && x%r < T((y/r-T(y/r))*r));
             }
         };
     }

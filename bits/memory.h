@@ -78,9 +78,19 @@ namespace op {
 // Implementation.
 namespace op {
     namespace detail {
-        // Workaround, some compilers only define ::max_align_t.
+        // Workaround, some compilers only define ::max_align_t or not at all.
+        namespace max_align_hack {
+            using namespace std;
+            #ifdef __clang__
+            typedef struct {
+                long long __max_align_ll __attribute__((__aligned__(__alignof__(long long))));
+                long double __max_align_ld __attribute__((__aligned__(__alignof__(long double))));
+            } max_align_t;
+            #endif
+        }
+
         inline constexpr std::size_t min_arena_alignment() {
-            using namespace std; 
+            using namespace max_align_hack; 
             return alignof(max_align_t);
         }
 

@@ -104,7 +104,7 @@ using namespace std;
     // leave it: it is already there
 # elif defined OP_TR2_OPTIONAL_DISABLE_EMULATION_OF_TYPE_TRAITS
     // leave it: the user doesn't want it
-# else
+# elif !defined(_LIBCPP_TYPE_TRAITS)
 	template <typename T>
 	using is_trivially_destructible = std::has_trivial_destructor<T>;
 # endif
