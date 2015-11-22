@@ -18,6 +18,9 @@ namespace op {
     namespace detail {
         using swallow_param_pack_t = int[];
         template<class T, T N, int = (N == 0 || N == 1) ? N : 2> struct Seq;
+        template<class T> struct unique_type { using single = std::unique_ptr<T>; };
+        template<class T> struct unique_type<T[]> { using array = std::unique_ptr<T[]>; };
+        template<class T, std::size_t N> struct unique_type<T[N]> { using unknown = void; };
     }
 
     // Expands and consumes parameter packs in left-to-right order.
@@ -35,7 +38,17 @@ namespace op {
 
     // to_array(c_array) is a helper function to create a std::array from a C array.
     template<class T, std::size_t N>
-    constexpr std::array<T, N> to_array(T const (&a)[N]);
+    constexpr std::array<typename std::remove_cv<T>::type, N> to_array(T (&a)[N]);
+
+    // Drop-in replacement for C++14 std::make_unique.
+    template<class T, class... Args>
+    typename detail::unique_type<T>::single make_unique(Args&&... args);
+
+    template<class T>
+    typename detail::unique_type<T>::array make_unique(size_t size);
+    
+    template<class T, class... Args>
+    inline typename detail::unique_type<T>::unknown make_unique(Args&&...) = delete;
 
     // range(start, stop, step=1) returns an iterable object that iterates over {start, start +
     // step, start + 2*step, ...} as long as start + k*step < stop.
@@ -127,8 +140,21 @@ namespace op {
 
 
     template<class T, std::size_t N>
-    inline constexpr std::array<T, N> to_array(T const (&a)[N]) {
+    inline constexpr std::array<typename std::remove_cv<T>::type, N> to_array(T (&a)[N]) {
         return detail::array_unpacker(a, op::make_index_sequence<N>());
+    }
+
+
+    template<class T, class... Args>
+    typename detail::unique_type<T>::single make_unique(Args&&... args) {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+
+    template<class T>
+    typename detail::unique_type<T>::array make_unique(std::size_t size) {
+        using U = typename std::remove_extent<T>::type;
+        return std::unique_ptr<T>{new U[size]()};
     }
 
 
