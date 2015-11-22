@@ -28,7 +28,7 @@ namespace op {
         explicit BaseException(std::string msg)
         : msg_storage(std::make_shared<std::string>(std::move(msg))) { }
         
-        virtual const char* what() const noexcept { return msg_storage->c_str(); }
+        virtual const char* what() const { return msg_storage->c_str(); }
 
     protected:
         BaseException();
