@@ -28,6 +28,7 @@ namespace op {
     namespace detail {
         template<class F>
         struct ScopeExit {
+            ScopeExit(const F& fn) : fn(fn) { }
             ScopeExit(const ScopeExit&) = delete;
             ScopeExit(ScopeExit&&) = default;
             ~ScopeExit() noexcept { fn(); }
