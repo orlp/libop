@@ -38,7 +38,7 @@ namespace op {
 
         template<class F>
         ScopeExit<typename std::decay<F>::type> operator+(ScopeExitAcceptor, F&& fn) {
-            return {std::forward<F>(fn)};
+            return ScopeExit<typename std::decay<F>::type>(std::forward<F>(fn));
         }
     }
 }
