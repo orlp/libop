@@ -259,7 +259,7 @@ namespace op {
 
         template<class T>
         inline constexpr T hypot_impl(T x, T y) {
-            return x < y  ? x * std::sqrt(T(1) + (x/y)*(x/y)) :
+            return x < y  ? y * std::sqrt(T(1) + (x/y)*(x/y)) :
                    x != 0 ? x * std::sqrt(T(1) + (y/x)*(y/x)) :
                             0;
         }
