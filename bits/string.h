@@ -63,7 +63,7 @@ namespace op {
     OutIter split(const Str1& str, const Str2& sep, OutIter out);
     
     // Splits str up in tokens separated by one of the characters in sep, even if the token is empty.
-    // split("+1-2", "+-", out) will result in *out++ = ""; *out++ = "1"; *out++ = "2";
+    // split_one_of("+1-2", "+-", out) will result in *out++ = ""; *out++ = "1"; *out++ = "2";
     // Returns the iterator one past the last element written.
     template<class OutIter, class Str1, class Str2,
              class = detail::enable_if_combinable_string_types_t<Str1, Str2>>
