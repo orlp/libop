@@ -63,7 +63,7 @@ namespace op {
     inline int clz(uint32_t n) {
         #if defined(__GNUC__) || OP_HAS_BUILTIN(__builtin_clzl)
             #define OP_HAS_FAST_CLZ32
-            return __builtin_clzl(n);
+            return __builtin_clz(n);
         #elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
             #define OP_HAS_FAST_CLZ32
             unsigned long result;
