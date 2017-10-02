@@ -368,7 +368,7 @@ namespace op {
         }
 
 
-        // Finds 2^-64 mod m and (-m)^-1 mod m for odd m (hacker's delight).
+        // Finds 2^-64 mod m and (-m)^-1 mod 2^64 for odd m (hacker's delight).
         inline std::pair<uint64_t, uint64_t> mont_modinv(uint64_t m) {
             uint64_t a = 1ull << 63;
             uint64_t u = 1;
